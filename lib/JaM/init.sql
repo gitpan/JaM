@@ -351,3 +351,11 @@ create table Address (
 );
 #</version6>#
 
+#<version7>#
+insert into Config (name, description, value, visible, type)
+values ('wrap_line_length_show', 'View Mail Wrapping Line Length', '85', 1, 'text');
+insert into Config (name, description, value, visible, type)
+values ('wrap_line_length_send', 'Send Mail Wrapping Line Length', '72', 1, 'text');
+insert into Config (name, description, value, visible, type)
+values ('browser_prog', 'Netscape Program', 'netscape', 1, 'file');
+#</version7>#

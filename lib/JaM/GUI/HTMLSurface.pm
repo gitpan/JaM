@@ -1,4 +1,4 @@
-# $Id: HTMLSurface.pm,v 1.13 2001/09/02 11:15:26 joern Exp $
+# $Id: HTMLSurface.pm,v 1.14 2001/11/02 13:46:13 joern Exp $
 
 package JaM::GUI::HTMLSurface;
 
@@ -124,7 +124,8 @@ sub url_click {
 
 	if ( $url =~ /^(https?|ftp):/ ) {
 		return 1 if $event->{button} != 1;
-		system ("netscape -remote 'openURL($url)'");
+		my $browser_prog = $self->config('browser_prog');
+		system ("$browser_prog -remote 'openURL($url)' >/dev/null 2>&1 &");
 		return 1;
 	} elsif ( $url =~ /mailto:([^\s]+)/ ) {
 		my $cb = $self->mail_link_callback;

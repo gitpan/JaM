@@ -1,10 +1,11 @@
-# $Id: Subjects.pm,v 1.19 2001/10/14 10:02:30 joern Exp $
+# $Id: Subjects.pm,v 1.20 2001/11/02 12:31:02 joern Exp $
 
 package JaM::GUI::Subjects;
 
 @ISA = qw ( JaM::GUI::Component );
 
 use strict;
+use JaM::Func;
 use JaM::GUI::Component;
 
 my $DEBUG = 1;
@@ -353,7 +354,7 @@ sub show {
 		$sender =~ s/"//g;
 		$list->append(
 			$status, $subject, $sender,
-			$self->format_date (time => $date, nice => 1)
+			JaM::Func->format_date (time => $date, nice => 1)
 		);
 		$list->set_row_style(
 			$cnt, $status eq 'N' ?
@@ -431,7 +432,7 @@ sub prepend_new_mail {
 	$sender =~ s/"//g;
 	$item = $list->prepend(
 		$status, $subject, $sender,
-		$self->format_date (time => $date, nice => 1)
+		JaM::Func->format_date (time => $date, nice => 1)
 	);
 	$list->set_row_style(
 		0, $status eq 'N' ?

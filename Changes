@@ -1,4 +1,19 @@
-$Id: Changes,v 1.23 2001/10/27 15:17:27 joern Exp $
+$Id: Changes,v 1.26 2001/11/02 13:46:13 joern Exp $
+
+1.0.5 2001/11/02 joern
+	Features:
+	- Great improvements on wrapping long lines of received
+	  mails and saved drafts / templates, e.g. automatic
+	  paragraph detection and auto insertion. Lines are wrapped
+	  when displaying and sending mail only (not altering received
+	  mails), so line wrapping is preserved for replies and saved
+	  mails.
+	- You can configure wrapping by two new User Configuration
+	  parameters: 'View Mail Wrapping Line Length' (Default: 85) and
+	  'Send Mail Wrapping Line Length' (Default: 72).
+	- Netscape Browser program is configurable (e.g. for using Mozilla
+	  instead) and started in background by JaM.
+	- the new parameters push schema version to 7.
 
 1.0.4 2001/10/27 joern
 	Bugfixes:

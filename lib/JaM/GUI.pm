@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.34 2001/09/02 16:17:32 joern Exp $
+# $Id: GUI.pm,v 1.35 2001/11/02 13:23:56 joern Exp $
 
 package JaM::GUI;
 
@@ -726,12 +726,14 @@ sub cb_print_button {
 				widget => $mail_as_html,
 				data => $mail->body->as_string,
 				no_table => 1,
+				wrap_length => $self->config('wrap_line_length_show'),
 			);
 		}
 		$mail_comp->print_child_entities (
 			first_time => 1,
 			widget => $mail_as_html,
-			entity => $mail
+			entity => $mail,
+			wrap_length => $self->config('wrap_line_length_show'),
 		);
 
 		$mail_as_html->end;

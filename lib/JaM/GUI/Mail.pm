@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.19 2001/09/02 11:15:26 joern Exp $
+# $Id: Mail.pm,v 1.22 2001/11/02 13:32:43 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -6,6 +6,7 @@ package JaM::GUI::Mail;
 
 use strict;
 use FileHandle;
+use JaM::Func;
 use JaM::GUI::Component;
 use JaM::GUI::HTMLSurface;
 
@@ -112,7 +113,8 @@ sub show {
 	if ( $mail->body ) {
 		$self->put_mail_text (
 			widget => $html,
-			data => $mail->body->as_string
+			data => $mail->body->as_string,
+			wrap_length => $self->config('wrap_line_length_show'),
 		);
 	}
 
@@ -121,6 +123,7 @@ sub show {
 		first_time => 1,
 		widget => $html,
 		entity => $mail,
+		wrap_length => $self->config('wrap_line_length_show'),
 	);
 
 	$html->end;
@@ -207,7 +210,7 @@ sub print_entity_head {
 	
 	$widget->write (
 		'<tr><td align="right"><b>Date:</b></td><td>&nbsp;</td><td>',
-		$self->quote($self->format_date ( date => $entity->date )),
+		$self->quote(JaM::Func->format_date ( date => $entity->date )),
 		'</td></tr>'
 	);
 
@@ -277,8 +280,10 @@ sub quote {
 sub print_child_entities {
 	my $self = shift;
 	my %par = @_;
-	my  ($entity, $widget, $first_time) =
-	@par{'entity','widget','first_time'};
+	my  ($entity, $widget, $first_time, $wrap_length) =
+	@par{'entity','widget','first_time','wrap_length'};
+	
+#	$wrap_length ||= $self->config ('wrap_line_length_show');
 	
 	my $childs = $entity->parts;
 
@@ -313,6 +318,7 @@ sub print_child_entities {
 				entity => $child,
 				widget => $widget,
 				first_time => 1,
+				wrap_length => $wrap_length,
 			);
 			next;
 		}
@@ -320,7 +326,8 @@ sub print_child_entities {
 		$first_time = $self->print_child_entities (
 			entity => $child,
 			widget => $widget,
-			first_time => $first_time
+			first_time => $first_time,
+			wrap_length => $wrap_length,
 		);
 
 		# discard wrong multipart/alternative part
@@ -348,7 +355,8 @@ sub print_child_entities {
 				$self->put_mail_text (
 					widget => $widget,
 					data => "\nWARNING: FILTERED HTML MAIL!!!\n\n".
-					        $self->html_filter($child->body->as_string)
+					        $self->html_filter($child->body->as_string),
+				 	wrap_length => $wrap_length,
 				);
 
 			} elsif ( $child_content_type =~ /^(message|text)/ ) {
@@ -363,7 +371,8 @@ sub print_child_entities {
 				}
 				$self->put_mail_text (
 					widget => $widget,
-					data => $data
+					data => $data,
+					wrap_length => $wrap_length,
 				);
 
 			} elsif ( $child_content_type =~ /^image/) {
@@ -390,6 +399,35 @@ sub print_child_entities {
 	return $first_time;
 }
 
+sub put_mail_text {
+	my $self = shift;
+	my %par = @_;
+	my  ($widget, $data, $no_table, $wrap_length) =
+	@par{'widget','data','no_table','wrap_length'};
+	
+#	$wrap_length ||= $self->config('wrap_line_length_show');
+	
+	my $quoted_color = $self->config('quoted_color');
+	
+	$data =~ s/</&lt;/g;
+	$data =~ s!(\w+://[^\s]+)!<a href="$1">$1</a>!g;
+	$data =~ s!(mailto:[^\s]+)!<a href="$1">$1</a>!g;
+
+	JaM::Func->wrap_mail_text (
+		text_sref   => \$data,
+		wrap_length => $wrap_length,
+	);
+
+	$data =~ s!^(\s*)(>.*)$!$1<font face="Courier" color="$quoted_color">$2</font>!mg;
+
+
+	$widget->write ('<table border="0" cellpadding="0" cellspacing="2"><tr><td>')
+		if not $no_table;
+	$widget->pre ($data);
+	$widget->write ("</td></tr></table>")
+		if not $no_table;
+}
+
 sub html_filter {
 	my $self = shift;
 	my ($html) = @_;
@@ -410,25 +448,6 @@ sub print_delimiter {
 	$widget->p;
 	$widget->hr;
 	$widget->p;
-}
-
-sub put_mail_text {
-	my $self = shift;
-	my %par = @_;
-	my ($widget, $data, $no_table) =  @par{'widget', 'data', 'no_table'};
-	
-	my $quoted_color = $self->config('quoted_color');
-	
-	$data =~ s/</&lt;/g;
-	$data =~ s!(\w+://[^\s]+)!<a href="$1">$1</a>!g;
-	$data =~ s!(mailto:[^\s]+)!<a href="$1">$1</a>!g;
-	$data =~ s!^(\s*)(>.*)$!$1<font face="Courier" color="$quoted_color">$2</font>!mg;
-
-	$widget->write ('<table border="0" cellpadding="0" cellspacing="2"><tr><td>')
-		if not $no_table;
-	$widget->pre ($data);
-	$widget->write ("</td></tr></table>")
-		if not $no_table;
 }
 
 sub put_inline_download_link {

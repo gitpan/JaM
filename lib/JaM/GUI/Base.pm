@@ -1,4 +1,4 @@
-# $Id: Base.pm,v 1.13 2001/08/19 15:32:39 joern Exp $
+# $Id: Base.pm,v 1.15 2001/11/02 12:32:06 joern Exp $
 
 package JaM::GUI::Base;
 
@@ -8,7 +8,6 @@ use strict;
 use Carp;
 use Data::Dumper;
 use Cwd;
-use Date::Manip;
 use JaM::Debug;
 use JaM::Config;
 use JaM::GUI::HTMLSurface;
@@ -34,8 +33,6 @@ sub new {
 	return bless $self, $type;
 }
 
-my @WEEKDAYS = ( 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' );
-
 # return database handle
 sub dbh 		{ shift->{dbh}			}
 sub htdocs_dir		{ return "lib/JaM/htdocs" }
@@ -53,7 +50,7 @@ sub comp {
 
 # get/set configuration parameters
 sub config {
-	my $self = shift;
+	my $thingy = shift;
 	my ($name, $value) = @_;
 
 	if ( @_ == 2 ) {
@@ -73,55 +70,6 @@ sub config_object {
 # restart program (needed during initalization process)
 sub restart_program {
 	exec ("bin/jam.pl", @ARGV);
-}
-
-# convert a unix timestamp to date format
-sub format_date {
-	my $self = shift;
-	my %par = @_;
-	my ($sent_time, $date, $nice) = @par{'time','date','nice'};
-
-	# if $date is given, format to unix time
-	if ( $date ) {
-		$sent_time = UnixDate ($date, "%s");
-	}
-
-	# format sent date
-	my $sent_nice;
-	my @st = localtime($sent_time);
-	my @tt = localtime(time);
-	
-	if ( not $nice ) {
-		# full date
-		return sprintf (
-			"%s %02d.%02d.%04d %02d:%02d",
-			$WEEKDAYS[$st[6]],
-			$st[3],$st[4]+1,$st[5]+1900,$st[2], $st[1]
-		);
-	}
-	
-	if ( $st[7] == $tt[7] ) {
-		# from today: only time
-		$sent_nice = sprintf (
-			"%02d:%02d",
-			$st[2], $st[1]
-		);
-	} elsif ( $sent_time > time - 432000 ) {
-		# less than 5 days: Weekday and time
-		$sent_nice = sprintf (
-			"%s %02d:%02d",
-			$WEEKDAYS[$st[6]],
-			$st[2], $st[1]
-		);
-	} else {
-		# full date
-		$sent_nice = sprintf (
-			"%02d.%02d.%04d %02d:%02d",
-			$st[3],$st[4]+1,$st[5]+1900,$st[2], $st[1]
-		);
-	}
-	
-	return $sent_nice;
 }
 
 sub show_file_dialog {

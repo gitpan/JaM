@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.27 2001/10/14 10:02:30 joern Exp $
+# $Id: Compose.pm,v 1.29 2001/11/02 13:23:57 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -6,6 +6,7 @@ package JaM::GUI::Compose;
 
 use strict;
 use JaM::Drop;
+use JaM::Func;
 use JaM::GUI::Component;
 use JaM::GUI::MailAsText;
 use JaM::Address;
@@ -291,7 +292,6 @@ sub add_recipient_widget {
 
 	if ( @{$self->to_header_choices} ) {
 		my $last_choice = $self->to_header_choices->[@{$self->to_header_choices}-1];
-print STDERR "last_choice=$last_choice\n";
 		if ( $last_choice eq 'CC' ) {
 			push @{$self->to_header_choices}, "CC";
 			$to_options->set_history (1);
@@ -542,7 +542,12 @@ sub cb_send_button {
 	my $len = $gtk_text->get_length;
 	
 	my $text = $gtk_text->get_chars (0, $len);
-	$self->wrap_mail_text ( text_sref => \$text, length => 72 );
+
+	JaM::Func->wrap_mail_text (
+		text_sref   => \$text,
+		wrap_length => $self->config('wrap_line_length_show'),
+	) if not $self->save_as_template and
+	     not $self->save_as_draft;
 	
 	my $x_mailer =
 		$self->config('x_mailer')." v".
@@ -743,13 +748,15 @@ sub insert_reply_message {
 	if ( $mail->body ) {
 		$mail_comp->put_mail_text (
 			widget => $mail_as_text,
-			data => $mail->body->as_string
+			data   => $mail->body->as_string,
+			wrap_length => $self->config('wrap_line_length_send')-2,
 		);
 	}
 	$mail_comp->print_child_entities (
 		first_time => 1,
 		widget => $mail_as_text,
-		entity => $mail
+		entity => $mail,
+		wrap_length => $self->config('wrap_line_length_send')-2,
 	);
 	
 	my $text = $self->gtk_text;
@@ -985,75 +992,6 @@ sub cb_del_button {
 
 	my $attachments = $self->attachments;
 	splice @{$attachments}, $index, 1;
-	
-	1;
-}
-
-sub wrap_mail_text {
-	my $self = shift;
-	my %par = @_;
-	my ($text_sref, $length) = @par{'text_sref','length'};
-
-	my $new_text = "";
-	my $line;
-	
-	my $DEBUG = 0;
-	
-	LINE: while ( $$text_sref =~ m/^(.*)$/mg ) {
-		$DEBUG && print "read a new line\n";
-		$line = $1;
-		chomp $line;
-
-		$DEBUG && print "line='$line'\n";
-		
-		if ( $line =~ /^\s*$/ ) {
-			# empty line
-			$new_text .= "\n";
-			next;
-		}
-
-		if ( $line =~ /^(\s+|\s*>)/ ) {
-			# we dont wrap indented or quoted lines
-			# (which distinguishes this from Text::Wrap)
-			$new_text .= $line."\n";
-			next;
-		}
-		
-		# now wrap new_line
-		while ( 1 ) {
-			if ( length($line) > $length ) {
-				$DEBUG && print "new_line too long\n";
-				my ($left, $right) = ( $line =~ m/^(.{0,$length})(.*)/ );
-				$DEBUG && print "left='$left'\n";
-				$DEBUG && print "right='$right'\n";
-				# did we cut a word?
-				if ( $left =~ m/[^\s]$/ and $right =~ m/^[^\s]/ ) {
-					$DEBUG && print "we cut a word\n";
-					$left =~ s/([^\s]+)$//;
-					if ( $left eq '' ) {
-						$DEBUG && print "line too long\n";
-						$new_text .= "$line\n";
-						next LINE;
-					}
-					$DEBUG && print "word start from left: $1\n";
-					$line = "$1$right";
-					$new_text .= "$left\n";
-				} else {
-					$DEBUG && print "we NOT cut a word\n";
-					$left =~ s/\s+$//;
-					$new_text .= "$left\n";
-					$right =~ s/^\s+//;
-					$line = $right;
-				}
-			} else {
-				$DEBUG && print "add to new_text: '$line'\n";
-				$new_text .= "$line\n";
-				last;
-			}
-		}
-	}
-	
-	$$text_sref = $new_text;
 	
 	1;
 }

@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.22 2001/11/02 13:32:43 joern Exp $
+# $Id: Mail.pm,v 1.23 2001/11/02 14:18:07 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -409,17 +409,15 @@ sub put_mail_text {
 	
 	my $quoted_color = $self->config('quoted_color');
 	
-	$data =~ s/</&lt;/g;
-	$data =~ s!(\w+://[^\s]+)!<a href="$1">$1</a>!g;
-	$data =~ s!(mailto:[^\s]+)!<a href="$1">$1</a>!g;
-
 	JaM::Func->wrap_mail_text (
 		text_sref   => \$data,
 		wrap_length => $wrap_length,
 	);
 
+	$data =~ s/</&lt;/g;
+	$data =~ s!(\w+://[^\s]+)!<a href="$1">$1</a>!g;
+	$data =~ s!(mailto:[^\s]+)!<a href="$1">$1</a>!g;
 	$data =~ s!^(\s*)(>.*)$!$1<font face="Courier" color="$quoted_color">$2</font>!mg;
-
 
 	$widget->write ('<table border="0" cellpadding="0" cellspacing="2"><tr><td>')
 		if not $no_table;

@@ -1,4 +1,4 @@
-# $Id: HTMLSurface.pm,v 1.12 2001/09/01 10:54:37 joern Exp $
+# $Id: HTMLSurface.pm,v 1.13 2001/09/02 11:15:26 joern Exp $
 
 package JaM::GUI::HTMLSurface;
 
@@ -257,7 +257,9 @@ sub begin {
 		'content="text/html; charset='.$charset.'">'."\n"
 	);
 
-	$self->write ('<html><body bgcolor="#d5d5d5">');
+	my $color = $self->config('mail_bgcolor');
+	$self->write ("<html><body bgcolor=\"$color\">");
+
 	1;
 }
 

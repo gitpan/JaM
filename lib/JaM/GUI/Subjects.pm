@@ -1,4 +1,4 @@
-# $Id: Subjects.pm,v 1.17 2001/08/20 20:37:31 joern Exp $
+# $Id: Subjects.pm,v 1.18 2001/09/02 11:15:26 joern Exp $
 
 package JaM::GUI::Subjects;
 
@@ -58,17 +58,15 @@ sub selected_mail_ids {
 # build subjects widget
 sub build {
 	my $self = shift; $self->trace_in;
+	my %par = @_;
+	my  ($without_quick_search, $without_resize_tracking) =
+	@par{'without_quick_search','without_resize_tracking'};
 
 	# Create a ScrolledWindow for the list
 	my $subjects = new Gtk::ScrolledWindow( undef, undef );
 	$subjects->set_policy( 'automatic', 'automatic' );
 	$subjects->set_usize(undef, $self->config('subjects_height'));
 	$subjects->show();
-
-	$subjects->signal_connect("size-allocate",
-		sub { $self->config('subjects_height', $_[1]->[3]) }
-	);
-
 
 	# Create list box
 	my @titles = qw( Status Subject Sender Date );
@@ -84,11 +82,18 @@ sub build {
 	$list->set_user_data ( $self );
 	$list->signal_connect( "select_row",   sub { $self->cb_select_mail(@_) } );
 	$list->signal_connect( "click_column", sub { $self->cb_column_click(@_) } );
-	$list->signal_connect( "resize-column",
-		sub {
-			$self->config('subjects_column_'.$_[1], $_[2]);
-		}
-	);
+
+	if ( not $without_resize_tracking ) {
+		$list->signal_connect( "resize-column",
+			sub {
+				$self->config('subjects_column_'.$_[1], $_[2]);
+			}
+		);
+		$subjects->signal_connect("size-allocate",
+			sub { $self->config('subjects_height', $_[1]->[3]) }
+		);
+	}
+
 	$list->show();
 
 	# now build popup Menu
@@ -119,42 +124,62 @@ sub build {
 	$item->signal_connect ("activate", sub { $self->cb_add_input_filter ( @_ ) } );
 	$item->show;
 
-	$item = Gtk::MenuItem->new;
-	$popup->append($item);
-	$item->show;
+	if ( not $without_quick_search ) {
 
-	$item = Gtk::MenuItem->new ("Quick Search Sender...");
-	$popup->append($item);
-	$item->signal_connect ("activate", sub {
-		$self->comp('subjects')->quick_search(
-			type => 'sender'
-		);
-	});
-	$item->show;
-	$item = Gtk::MenuItem->new ("Quick Search Subject...");
-	$popup->append($item);
-	$item->signal_connect ("activate", sub {
-		$self->comp('subjects')->quick_search(
-			type => 'subject'
-		);
-	});
-	$item->show;
-	$item = Gtk::MenuItem->new ("Quick Search Body...");
-	$popup->append($item);
-	$item->signal_connect ("activate", sub {
-		$self->comp('subjects')->quick_search(
-			type => 'body'
-		);
-	});
-	$item->show;
-	$item = Gtk::MenuItem->new ("Quick Search Recipient...");
-	$popup->append($item);
-	$item->signal_connect ("activate", sub {
-		$self->comp('subjects')->quick_search(
-			type => 'recipient'
-		);
-	});
-	$item->show;
+		$item = Gtk::MenuItem->new;
+		$popup->append($item);
+		$item->show;
+
+		$item = Gtk::MenuItem->new ("Quick Search Sender...");
+		$popup->append($item);
+		$item->signal_connect ("activate", sub {
+			$self->comp('subjects')->quick_search(
+				type => 'sender'
+			);
+		});
+		$item->show;
+		$item = Gtk::MenuItem->new ("Quick Search Subject...");
+		$popup->append($item);
+		$item->signal_connect ("activate", sub {
+			$self->comp('subjects')->quick_search(
+				type => 'subject'
+			);
+		});
+		$item->show;
+		$item = Gtk::MenuItem->new ("Quick Search Body...");
+		$popup->append($item);
+		$item->signal_connect ("activate", sub {
+			$self->comp('subjects')->quick_search(
+				type => 'body'
+			);
+		});
+		$item->show;
+		$item = Gtk::MenuItem->new ("Quick Search Recipient...");
+		$popup->append($item);
+		$item->signal_connect ("activate", sub {
+			$self->comp('subjects')->quick_search(
+				type => 'recipient'
+			);
+		});
+		$item->show;
+
+		$item = Gtk::MenuItem->new;
+		$popup->append($item);
+		$item->show;
+
+		$item = Gtk::MenuItem->new ("Advanced Search...");
+		$popup->append($item);
+		$item->signal_connect ("activate", sub {
+  			require JaM::GUI::Search;
+  			my $search = JaM::GUI::Search->new (
+				dbh => $self->dbh
+			);
+			$search->open_window;
+			$search->folder_chosen ($self->folder_object->id);
+		});
+		$item->show;
+
+	}
 
 	$self->gtk_subjects ($subjects);
 	$self->gtk_subjects_list ($list);
@@ -222,20 +247,20 @@ sub cb_add_input_filter {
 sub show {
 	my $self = shift; $self->trace_in;
 	my %par = @_;
-	my  ($folder_object, $where, $params, $tables) =
-	@par{'folder_object','where','params','tables'};
+	my  ($folder_object, $where, $params, $tables, $sql) =
+	@par{'folder_object','where','params','tables','sql'};
 
 	$folder_object ||= $self->folder_object;
 	
-	return if not $folder_object;
+	my $is_sent_folder;
+	if ( $folder_object ) {
+		$self->folder_object ( $folder_object );
+		$is_sent_folder =
+			($folder_object->id == $self->config('sent_folder_id') or
+			 $folder_object->id == $self->config('drafts_folder_id') or
+			 $folder_object->id == $self->config('templates_folder_id') );
 
-	$self->folder_object ( $folder_object );
-	my $is_sent_folder =
-		($folder_object->id == $self->config('sent_folder_id') or
-		 $folder_object->id == $self->config('drafts_folder_id') or
-		 $folder_object->id == $self->config('templates_folder_id') );
-
-	$self->debug ("folder_id=".$folder_object->id);
+	}
 
 	my $list = $self->gtk_subjects_list;
 	my $dbh = $self->dbh;
@@ -246,15 +271,22 @@ sub show {
 	my $sender_column;
 	if ( $is_sent_folder ) {
 		$list->set_column_title (2, "To");
-		$sender_column = "recipient";
+		$sender_column = "head_to";
 	} else {
 		$list->set_column_title (2, "Sender");
 		$sender_column = "sender";
 	}
 
-	my $column    = $folder_object->sort_column;
-	my $direction = $folder_object->sort_direction;
-	$direction = $direction eq 'ascending' ? "" : "desc";
+	my $column;   
+	my $direction;
+	if ( $folder_object ) {
+		$column = $folder_object->sort_column;
+		$direction = $folder_object->sort_direction;
+		$direction = $direction eq 'ascending' ? "" : "desc";
+	} else {
+		$column = 5;
+		$direction = "desc";
+	}
 
 	foreach my $i (0..3) {
 		my $title = $list->get_column_title ($i);
@@ -271,7 +303,7 @@ sub show {
 	$column += 2;
 
 	my $limit;
-	if ( not $folder_object->show_all ) {
+	if ( $folder_object and not $folder_object->show_all ) {
 		$limit = "limit ".$folder_object->show_max;
 	}
 
@@ -283,16 +315,22 @@ sub show {
 		$tables = ", $tables" if $tables;
 	}
 
-	my $sql = "select Mail.id, Mail.status, Mail.subject, Mail.$sender_column,
+	if ( not $sql ) {
+	   $sql = "select Mail.id, Mail.status, Mail.subject, Mail.$sender_column,
 		          UNIX_TIMESTAMP(Mail.date)
 		   from   Mail $tables
 		   where  folder_id = ? $where
 		   order by $column $direction, 5 $direction
 		   $limit";
+	}
 
 	my $sth = $dbh->prepare ($sql);
 
-	$sth->execute ( $folder_object->id, @{$params} );
+	if ( $folder_object ) {
+		$sth->execute ( $folder_object->id, @{$params} );
+	} else {
+		$sth->execute ( @{$params} );
+	}
 
 	my $unread_style = $list->style->copy;
 	$unread_style->font($self->config('font_mail_unread'));
@@ -301,9 +339,10 @@ sub show {
 
 	my @mail_ids;
 	my ($id, $status, $subject, $sender, $date);
-	my $selected_mail_id = $folder_object->selected_mail_id;
 	my $selected_row = 0;
 	my $cnt = 0;
+	my $selected_mail_id;
+	$selected_mail_id = $folder_object->selected_mail_id if $folder_object;
 
 	$self->mail_ids (undef);
 
@@ -365,7 +404,7 @@ sub prepend_new_mail {
 	my $sender_column;
 	if ( $is_sent_folder ) {
 		$list->set_column_title (2, "To");
-		$sender_column = "recipient";
+		$sender_column = "head_to";
 	} else {
 		$list->set_column_title (2, "Sender");
 		$sender_column = "sender";
@@ -454,7 +493,7 @@ sub remove_rows {
 sub cb_select_mail {
 	my $self = shift; $self->trace_in;
 	my ($clist, $row, $column, $event) = @_;
-	
+
 	return 1 if not defined $self->mail_ids;
 	my @sel = $self->gtk_subjects_list->selection;
 	return if @sel > 1;
@@ -484,7 +523,10 @@ sub cb_select_mail {
 		$self->comp('mail')->show ( mail_id => $mail_id );
 		$self->comp('folders')->update_folder_item;
 
-		$self->show_mail_status ( row => $row, status => 'R' );
+		$self->show_mail_status (
+			row => $row,
+			status => $self->comp('mail')->mail->status
+		);
 	}
 
 	if ( $event->{type} eq '2button_press' and
@@ -538,8 +580,11 @@ sub cb_column_click {
 	my $self = shift;
 	my ($clist, $clicked_column) = @_;
 	
-	my $folders = $self->comp('folders');
 	my $folder_object = $self->folder_object;
+
+	return 1 if not $folder_object;
+
+	my $folders = $self->comp('folders');
 
 	my $column    = $folder_object->sort_column;
 	my $direction = $folder_object->sort_direction;
@@ -594,6 +639,7 @@ sub quick_search {
 			$dialog->destroy;
 		} );
 	} else {
+		$type = "head_to" if $type eq 'recipient';
 		$ok->signal_connect( "clicked", sub {
 			$self->show ( 
 				where => "$type like '%".$text->get_text."%'"
@@ -620,14 +666,11 @@ sub move_selected_mails {
 	my $selected_mail_ids = $self->selected_mail_ids;
 	return if not @{$selected_mail_ids};
 
-	return 1 if $self->comp('folders')->selected_folder_object->id ==
-		    $folder_id;
-
 	my $folder_object = JaM::Folder->by_id ($folder_id);
 
 	$self->comp('mail')->move_to_folder (
 		folder_object => $folder_object,
-		mail_ids      => $self->comp('subjects')->selected_mail_ids
+		mail_ids      => $selected_mail_ids
 	);
 
 	$self->remove_selected;

@@ -1,4 +1,4 @@
-# $Id: IO_Filter.pm,v 1.2 2001/08/20 20:37:31 joern Exp $
+# $Id: IO_Filter.pm,v 1.3 2001/09/02 11:15:26 joern Exp $
 
 package JaM::GUI::IO_Filter;
 
@@ -245,15 +245,13 @@ sub cb_delete {
 
 	$self->debug("row=$row filter_id=$filter_id");
 
+	my $filter = $self->selected_filter;
 	$self->selected_filter(undef);
 
 	$self->gtk_filter_list->remove ($row);
 	splice @{$filter_ids}, $row, 1;
 
-	JaM::Filter::IO->delete (
-		dbh => $self->dbh,
-		filter_id => $filter_id
-	);
+	$filter->delete;
 
 	if ( @{$filter_ids} == 0 ) {
 		$self->blank_edit_pane;

@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.22 2001/09/01 11:24:32 joern Exp $
+# $Id: Compose.pm,v 1.23 2001/09/01 11:29:15 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -643,7 +643,15 @@ sub encode_word {
 	my $self = shift;
 	my ($word) = @_;
 	
-	if ( $word =~ /[^a-z0-9_\@<>.]/i ) {
+	my $encode_it;
+	for ( my $i = 0; $i < length($word); ++$i ) {
+		if ( ord(substr($word,$i,1)) > 127 ) {
+			$encode_it=1;
+			last;
+		}
+	}
+	
+	if ( $encode_it ) {
 		return MIME::Words::encode_mimeword($word);
 	} else {
 		return $word;

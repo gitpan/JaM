@@ -145,11 +145,20 @@ sub drop_mail {
 	$status = $moz_status & $MOZ_STATUS_READ ? 'R' : 'N' if $moz_status;
 	$status ||= 'N';
 
-	my ($from, $to);
+	my ($from, @to, $to, @cc, $cc);
 	chomp ($from = $head->get ('From', 0) );
 	$from = $self->word_decode ($from);
-	chomp (($to) = $head->get ('To', 0) );
+	
+	@to = $head->get ('To');
+	$to = join (",",@to);
+	$to =~ s/[\n\r]//g;
 	$to = $self->word_decode ($to);
+
+	@cc = $head->get ('Cc');
+	$cc = join (",",@cc);
+	$cc =~ s/[\n\r]//g;
+	$cc = $self->word_decode ($cc);
+
 	my $subject;
 	chomp ($subject = $head->get ('Subject', 0) );
 	$subject = $self->word_decode ($subject);
@@ -173,12 +182,13 @@ sub drop_mail {
 	# store abstract information in database
 	$dbh->do (
 		"insert into Mail
-		 (subject, sender, recipient, date, folder_id, status)
+		 (subject, sender, head_to, head_cc, date, folder_id, status)
 		 values
-		 (?, ?, ?, ?, ?, ?)", {},
+		 (?, ?, ?, ?, ?, ?, ?)", {},
 		$subject,
 		$from || '<>',
 		$to || '<>',
+		$cc,
 		$date || '1970-01-01',
 		$folder_id,
 		$status

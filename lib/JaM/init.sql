@@ -48,7 +48,8 @@ create table Mail (
 					not null,
 	subject		varchar(255),
 	sender		varchar(80)	not null,
-	recipient	varchar(80),
+	head_to		varchar(255),
+	head_cc		varchar(255),
 	date		datetime	not null,
 	folder_id	integer		not null,
 	account_id	integer		not null,
@@ -56,8 +57,7 @@ create table Mail (
 );
 
 create index Mail_idx1 on Mail(folder_id, date);
-create index Mail_idx2 on Mail(folder_id, subject);
-create index Mail_idx3 on Mail(folder_id, recipient);
+create index Mail_idx2 on Mail(folder_id);
 
 create table Entity (
 	id		integer		primary key
@@ -310,3 +310,17 @@ update Config set visible=0 where name='folder_tree_left';
 #<version4>#
 alter table IO_Filter add folder_id integer not null default 0;
 #</version4>#
+
+#<version5>#
+alter table Mail add head_cc varchar(255);
+alter table Mail add head_to varchar(255);
+update Mail set head_to=recipient;
+drop index Mail_idx2 on Mail;
+drop index Mail_idx3 on Mail;
+alter table Mail drop recipient;
+create index Mail_idx2 on Mail(folder_id);
+
+insert into Config (name, description, value, visible, type)
+values ('mail_bgcolor', 'Mail Background Color', '#d5d5d5', 1, 'html_color');
+
+#</version5>#

@@ -1,4 +1,21 @@
-$Id: Changes,v 1.15 2001/09/01 11:24:32 joern Exp $
+$Id: Changes,v 1.16 2001/09/02 11:15:25 joern Exp $
+
+0.9.13 2001/09/02 joern
+	Features:
+	- when selecting last selected message in a folder, its
+	  status is not changed
+	- first version of a mail search window, not perfect but
+	  works ok. e.g. it would be nice to see the folder
+	  path of found mails.
+	- mail background color is configurable
+	- added a generic exception handler. internal exceptions
+	  are now catched and presented in a message window. this
+	  way internal errors should not crash JaM to death
+	  (or at least very seldom ;).
+	
+	Bugfixes:
+	- deleting IO filters crashed JaM
+	- initial database creation did not work
 
 0.9.12 2001/09/01 joern
 	Bugfixes:

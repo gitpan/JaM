@@ -1,4 +1,4 @@
-# $Id: Folders.pm,v 1.20 2001/08/29 19:49:29 joern Exp $
+# $Id: Folders.pm,v 1.21 2001/09/02 11:15:25 joern Exp $
 
 package JaM::GUI::Folders;
 
@@ -220,6 +220,15 @@ sub build {
 	my $popup = $root_tree->{popup} = Gtk::Menu->new;
 	my $item;
 
+	$item = Gtk::MenuItem->new ("Advanced Search...");
+	$popup->append($item);
+	$item->signal_connect ("activate", sub {$self->cb_search_in_folder ( @_ ) } );
+	$item->show;
+
+	$item = Gtk::MenuItem->new;
+	$popup->append($item);
+	$item->show;
+
 	$item = Gtk::MenuItem->new ("Rename Folder...");
 	$popup->append($item);
 	$item->signal_connect ("activate", sub { $self->cb_rename_folder ( @_ ) } );
@@ -389,6 +398,22 @@ sub cb_rename_folder {
 	1;
 }
 
+sub cb_search_in_folder {
+	my $self = shift;
+
+	my $folder_object = $self->popup_folder_object;
+	
+  	require JaM::GUI::Search;
+  	my $search = JaM::GUI::Search->new (
+		dbh => $self->dbh
+	);
+	$search->open_window;
+	
+	$search->folder_chosen ($folder_object->id);
+	
+	1;
+}
+
 sub cb_create_new_template {
 	my $self = shift;
 	
@@ -513,7 +538,12 @@ sub cb_folder_select {
 	my $folder_object = JaM::Folder->by_id($node->{folder_id});
 
 	$self->selected_folder_object ( $folder_object );
-	$self->comp('subjects')->show ( folder_object => $folder_object );
+
+	$self->comp('mail')->no_status_change_on_show(1);
+	$self->comp('subjects')->show (
+		folder_object => $folder_object,
+	);
+	$self->comp('mail')->no_status_change_on_show(0);
 
 	my $gui = $self->comp('gui');
 	$gui->no_subjects_update (1);

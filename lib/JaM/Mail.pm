@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.9 2001/08/19 11:36:11 joern Exp $
+# $Id: Mail.pm,v 1.10 2001/09/02 11:15:25 joern Exp $
 
 package JaM::Mail;
 
@@ -17,7 +17,6 @@ $WORD_DECODER->handler ('*', "KEEP");
 sub dbh 		{ shift->{dbh}				}
 sub mail_id 		{ shift->{mail_id}			}
 sub folder_id 		{ shift->{folder_id}			}
-sub status 		{ shift->{status}			}
 
 sub load {
 	my $type = shift;
@@ -25,14 +24,14 @@ sub load {
 	my  ($dbh, $mail_id) = @par{'dbh','mail_id'};
 	
 	my $sth = $dbh->prepare (
-		"select subject, sender, recipient, UNIX_TIMESTAMP(date),
+		"select subject, sender, UNIX_TIMESTAMP(date),
 			folder_id, status, Entity.data
 		 from   Mail, Entity
 		 where  Mail.id = ? and Entity.mail_id=Mail.id"
 	);
 	$sth->execute ( $mail_id );
 
-	my ($subject, $sender, $recipient, $date,
+	my ($subject, $sender, $date,
 	    $folder_id, $status, $entity) = $sth->fetchrow_array;
 
 	$sth->finish;
@@ -42,7 +41,6 @@ sub load {
 		mail_id		=> $mail_id,
 		subject 	=> $subject,
 		sender		=> $sender,
-		recpipient	=> $recipient,
 		date_time	=> $date,
 		folder_id	=> $folder_id,
 		status		=> $status,
@@ -86,6 +84,8 @@ sub move_to_folder {
 	my $dbh           = $self->dbh;
 	my $mail_id       = $self->mail_id;
 	my $old_folder_id = $self->folder_id;
+	
+	return if $new_folder_id == $old_folder_id;
 	
 	# change folder_id for this mail
 	$self->folder_id ( $new_folder_id );

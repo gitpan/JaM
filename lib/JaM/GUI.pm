@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.32 2001/09/01 10:54:36 joern Exp $
+# $Id: GUI.pm,v 1.33 2001/09/02 11:15:25 joern Exp $
 
 package JaM::GUI;
 
@@ -56,7 +56,21 @@ sub start {
 	
 	$self->build;
 
-	Gtk->main;
+	while (1) {
+		eval { Gtk->main };
+		if ( $@ ) {
+			my $error =
+				"An internal exception was thrown!\n".
+				"The error message was:\n\n$@";
+				
+			$self->message_window (
+				message => $error
+			);
+			next;
+		} else {
+			last;
+		}
+	}
 }
 
 sub load_fonts {
@@ -253,9 +267,10 @@ sub create_menubar {
 		  accelerator => '<control>R',
                   callback    => sub { $self->cb_reply_button } },
                 { path        => '/Message/Reply _All Message',
+		  accelerator => '<control>A',
                   callback    => sub { $self->cb_reply_all_button } },
                 { path        => '/Message/_Forward Message',
-		  accelerator => '<control>F',
+		  accelerator => '<control>O',
                   callback    => sub { $self->cb_forward_button } },
 		{ path	      => '/Message/sep2',
 		  type	      => '<Separator>' },
@@ -267,6 +282,17 @@ sub create_menubar {
                 { path        => '/Message/_Delete Message',
 		  accelerator => '<control>D',
                   callback    => sub { $self->cb_delete_button } },
+		{ path	      => '/Message/sep4',
+		  type	      => '<Separator>' },
+                { path        => '/Message/Advanced _Search...',
+		  accelerator => '<control>F',
+                  callback    => sub {
+		  	require JaM::GUI::Search;
+		  	my $search = JaM::GUI::Search->new (
+				dbh => $self->dbh
+			);
+			$search->open_window;
+		  } },
 
 		{ path	      => '/_Help',
 		  type	      => '<LastBranch>' },

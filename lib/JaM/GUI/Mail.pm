@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.18 2001/09/01 10:54:37 joern Exp $
+# $Id: Mail.pm,v 1.19 2001/09/02 11:15:26 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -29,6 +29,9 @@ sub mail 		{ my $s = shift; $s->{mail}
 sub show_all_header 	{ my $s = shift; $s->{show_all_header}
 		          = shift if @_; $s->{show_all_header}		}
 
+# this flag controls whether mails status should be changed when viewd
+sub no_status_change_on_show 	{ my $s = shift; $s->{no_status_change_on_show}
+		          	  = shift if @_; $s->{no_status_change_on_show}		}
 
 # build mail viewer widget
 sub build {
@@ -123,7 +126,7 @@ sub show {
 	$html->end;
 	$html->widget->thaw;
 
-	$mail->status ( 'R' );
+	$mail->status ( 'R' ) if not $self->no_status_change_on_show;
 
 	1;
 }
@@ -145,12 +148,14 @@ sub move_to_folder {
 	if ( not $mail_ids and not $mail ) {
 		$mail ||= $self->mail;
 	}
+	
 	return if not $mail and not $mail_ids;
 	
 	my $folder_id = $folder_object->id;
-	my $parent_folder_id;
+	my %parent_folder_ids;
+
 	if ( $mail ) {
-		$parent_folder_id = $mail->folder_id;
+		$parent_folder_ids{$mail->folder_id} = 1;
 		$mail->move_to_folder ( folder_id => $folder_id );
 
 	} else {
@@ -159,7 +164,7 @@ sub move_to_folder {
 				mail_id => $mail_id,
 				dbh     => $self->dbh
 			);
-			$parent_folder_id = $mail->folder_id;
+			$parent_folder_ids{$mail->folder_id} = 1;
 			$mail->move_to_folder (
 				folder_id => $folder_id
 			);
@@ -169,9 +174,12 @@ sub move_to_folder {
 	$self->comp('folders')->update_folder_item (
 		folder_object => $folder_object
 	);
-	$self->comp('folders')->update_folder_item (
-		folder_object => JaM::Folder->by_id ($parent_folder_id)
-	);
+
+	foreach my $parent_folder_id ( keys %parent_folder_ids ) {
+		$self->comp('folders')->update_folder_item (
+			folder_object => JaM::Folder->by_id ($parent_folder_id)
+		);
+	}
 
 	1;
 }

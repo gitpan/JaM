@@ -1,4 +1,4 @@
-# $Id: Init.pm,v 1.1 2001/08/11 14:37:26 joern Exp $
+# $Id: Init.pm,v 1.2 2001/09/02 11:15:26 joern Exp $
 
 package JaM::GUI::Init;
 
@@ -14,7 +14,7 @@ sub db_configuration {
 
 	my $db_gui = JaM::GUI::Database->new;
 	$db_gui->in_initialization(1);
-	$db_gui->build_configuration_window;
+	$db_gui->build;
 
 	Gtk->main;
 }

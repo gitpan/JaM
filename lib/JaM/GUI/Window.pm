@@ -1,4 +1,4 @@
-# $Id: Window.pm,v 1.1 2001/08/20 20:37:31 joern Exp $
+# $Id: Window.pm,v 1.2 2001/08/28 18:58:23 joern Exp $
 
 package JaM::GUI::Window;
 
@@ -25,14 +25,10 @@ sub new {
 		 "or multi instance window")
 		if not $single_instance and not $multi_instance;
 
-	print "single_instance=$single_instance\n";
-
 	my $self;
 	if ( $single_instance ) {
 		$self = $SINGLE_INSTANCE_OBJECTS{$type};
-		print "self=$self\n";
 		return $self if $self;
-		print "new\n";
 		$self = $type->SUPER::new(@_);
 		$SINGLE_INSTANCE_OBJECTS{$type} = $self;
 	} else {
@@ -56,8 +52,6 @@ sub open_window {
 	return if $self->single_instance_window and
 	          $self->gtk_window_widget;
 	
-	print "build\n";
-
 	$self->build(@_);
 
 	confess ("Window component didn't set gtk_window_widget")

@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.30 2001/08/20 20:37:30 joern Exp $
+# $Id: GUI.pm,v 1.31 2001/08/28 18:58:23 joern Exp $
 
 package JaM::GUI;
 
@@ -8,6 +8,7 @@ use strict;
 use Data::Dumper;
 
 use Gtk;
+use Gtk::Keysyms;
 use JaM::Mail;
 use JaM::Account;
 use JaM::Drop;
@@ -361,7 +362,7 @@ sub create_toolbar {
 
 	$show_all_radio->signal_connect ("clicked", sub { $self->cb_show_all (1) } );
 	$show_limit_radio->signal_connect ("clicked", sub { $self->cb_show_all (0) } );
-	$limit_entry->signal_connect_after("key_press_event", sub { $self->cb_limit_entry_key_press (@_) });
+	$limit_entry->signal_connect_after("activate", sub { $self->cb_limit_entry_activate (@_) });
 
 	$toolbar->show();
 	$self->gtk_toolbar ($toolbar);
@@ -789,20 +790,19 @@ sub cb_show_all {
 	1;
 }
 
-sub cb_limit_entry_key_press {
+sub cb_limit_entry_activate {
 	my $self = shift;
 	my ($widget, $event) = @_;
 
 	my $folder_object = $self->comp('folders')->selected_folder_object;
 	return 1 if not $folder_object;
 	
-	if ( $event->{keyval} == 65293 or $event->{keyval} == 65289 ) {
-		$folder_object->show_max($widget->get_text);
-		$folder_object->show_all(0);
-		$folder_object->save;
-		$self->update_folder_limit;
-		$self->comp('subjects')->show if not $self->no_subjects_update;
-	}
+	$folder_object->show_max($widget->get_text);
+	$folder_object->show_all(0);
+	$folder_object->save;
+	$self->update_folder_limit;
+	$self->comp('subjects')->show if not $self->no_subjects_update;
+	$widget->set_text($folder_object->show_max);
 
 	return 1;
 }

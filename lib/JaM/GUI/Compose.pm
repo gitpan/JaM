@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.18 2001/08/20 20:37:30 joern Exp $
+# $Id: Compose.pm,v 1.19 2001/08/28 18:58:23 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -48,7 +48,9 @@ sub save_as_template	{ my $s = shift; $s->{save_as_template}
 		          = shift if @_; $s->{save_as_template}		}
 sub save_as_draft	{ my $s = shift; $s->{save_as_draft}
 		          = shift if @_; $s->{save_as_draft}		}
-			  
+sub ctrl_key_pressed	{ my $s = shift; $s->{ctrl_key_pressed}
+		          = shift if @_; $s->{ctrl_key_pressed}		}
+
 sub delete_mail_after_send  { my $s = shift; $s->{delete_mail_after_send}
 		              = shift if @_; $s->{delete_mail_after_send}  }
 
@@ -245,7 +247,8 @@ sub cb_to_entry_key_press {
 	my $self = shift;
 	my ($widget, $event, $nr) = @_;
 	
-	if ( $event->{keyval} == 65289 or $event->{keyval} == 65293 ) {
+	if ( $event->{keyval} == $Gtk::Keysyms{Tab} or
+	     $event->{keyval} == $Gtk::Keysyms{Return} ) {
 		my $text = $widget->get_text;
 		$text =~ s/^\s+//;
 		$text =~ s/\s+$//;
@@ -256,10 +259,10 @@ sub cb_to_entry_key_press {
 		}
 	}
 	
-	if ( $event->{keyval} == 65289 ) {
+	if ( $event->{keyval} == $Gtk::Keysyms{Tab} ) {
 		$self->gtk_subject->grab_focus;
 
-	} elsif ( $event->{keyval} == 65293 ) {
+	} elsif ( $event->{keyval} == $Gtk::Keysyms{Return} ) {
 		if ( $nr+1 >= @{$self->gtk_to_entries} ) {
 			$self->add_recipient_widget->grab_focus;
 			my $adj = $self->gtk_to_sw->get_vadjustment;
@@ -299,7 +302,8 @@ sub cb_subject_key_press {
 	my $self = shift;
 	my ($widget, $event) = @_;
 	
-	if ( $event->{keyval} == 65293 or $event->{keyval} == 65289 ) {
+	if ( $event->{keyval} == $Gtk::Keysyms{Tab} or
+	     $event->{keyval} == $Gtk::Keysyms{Return} ) {
 		$self->gtk_text->grab_focus();
 	}
 	
@@ -326,7 +330,8 @@ sub create_body {
 	my $style = $text->style->copy;
 	$style->font ($self->config('font_mail_compose'));
 	$text->set_style ($style);
-	$text->signal_connect ("key_press_event", sub { $self->cb_text_key_press (@_) });
+	$text->signal_connect ("key_press_event",   sub { $self->cb_text_key_press (@_) });
+	$text->signal_connect ("key_release_event", sub { $self->cb_text_key_release (@_) });
 	$text->show();
 
 	# Add a vertical scrollbar to the GtkText widget
@@ -343,18 +348,39 @@ sub create_body {
 	return $table;
 }
 
+sub cb_text_key_release {
+	my $self = shift;
+	my ($widget, $event) = @_;
+
+	my $keyval = $event->{keyval};
+	$self->debug ("release keyval=$keyval");
+
+	if ( $event->{keyval} == $Gtk::Keysyms{Control_L} or
+	     $event->{keyval} == $Gtk::Keysyms{Control_R} ) {
+	     	# track state of ctrl key
+		$self->ctrl_key_pressed(0);
+	}
+	
+	1;
+}
+
 sub cb_text_key_press {
 	my $self = shift;
 	my ($widget, $event) = @_;
 
 	my $keyval = $event->{keyval};
-	$self->debug ("keyval=$keyval");
+	$self->debug ("press keyval=$keyval");
 
-	if ( $keyval == 65293 ) {
+	if ( $keyval == $Gtk::Keysyms{Enter} ) {
 		# enter key should delete actual selection
 		$widget->delete_selection;
 
-	} elsif ( $keyval == 113 ) {
+	} elsif ( $event->{keyval} == $Gtk::Keysyms{Control_L} or
+	          $event->{keyval} == $Gtk::Keysyms{Control_R} ) {
+	     	# track state of ctrl key
+		$self->ctrl_key_pressed(1);
+
+	} elsif ( $self->ctrl_key_pressed and $keyval == $Gtk::Keysyms{q} ) {
 		# Ctrl Q removes quoted stuff
 		$widget->freeze;
 		my $index = $widget->get_point;
@@ -441,6 +467,7 @@ sub cb_send_button {
 		Date => $self->get_rfc822_date,
 		Data => [ $text ],
 		Charset => 'iso-8859-1',
+		Encoding => '8bit',
 		'X-Mailer' => $x_mailer,
 	);
 
@@ -562,7 +589,7 @@ sub get_rfc822_date {
 	POSIX::setlocale (LC_TIME, "en");
 	
 	# generate the local time string
- 	$date = POSIX::strftime ("%a, %e %b %Y %T %Z", localtime($now));
+ 	$date = POSIX::strftime ("%a, %e %b %Y %T %z", localtime($now));
 	
 	# revert the locale
 	POSIX::setlocale (LC_TIME, $oldlocale);

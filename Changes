@@ -1,4 +1,15 @@
-$Id: Changes,v 1.11 2001/08/20 20:37:29 joern Exp $
+$Id: Changes,v 1.12 2001/08/28 18:58:22 joern Exp $
+
+0.9.9 2001/08/28 joern
+	Bugfixes:
+	- removed debugging output from JaM::GUI::Window
+	- changed Content-Transfer-Encodiung from binary to 8Bit,
+	  what's better, I think.
+	- fixed date header, it was not strictly rfc822 conform.
+	  the timezone was noted in abbrevation form, which was
+	  not correct for my TZ (CEST). now the offest format is
+	  used to represent the timezone.
+	- removed hardcoded keyval's, using Gtk::Keysyms instead.
 
 0.9.8 2001/08/20 joern
 	Bugfixes:

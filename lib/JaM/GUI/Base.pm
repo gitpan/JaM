@@ -1,17 +1,21 @@
-# $Id: Base.pm,v 1.11 2001/08/14 21:12:50 joern Exp $
+# $Id: Base.pm,v 1.12 2001/08/18 16:37:10 joern Exp $
 
 package JaM::GUI::Base;
+
+@ISA = qw ( JaM::Debug );
 
 use strict;
 use Carp;
 use Data::Dumper;
 use Cwd;
 use Date::Manip;
+use JaM::Debug;
 use JaM::Config;
 use JaM::GUI::HTMLSurface;
 
 my $CONFIG_OBJECT;
 my %COMPONENTS;
+my %SESSION_PARAMETERS;
 
 sub new {
 	my $type = shift;
@@ -35,6 +39,7 @@ my @WEEKDAYS = ( 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' );
 # return database handle
 sub dbh 		{ shift->{dbh}			}
 sub htdocs_dir		{ return "lib/JaM/htdocs" }
+sub session_parameters	{ \%SESSION_PARAMETERS		}
 
 # get/set component objects
 sub comp {
@@ -159,32 +164,56 @@ sub cb_commit_file_dialog {
 	my $filename = $dialog->get_filename();
 	
 	if ( -f $filename and $confirm ) {
-		my $confirm = Gtk::Dialog->new;
-		my $label = Gtk::Label->new ("Overwrite existing file '$filename'?");
-		$confirm->vbox->pack_start ($label, 1, 1, 0);
-		$confirm->border_width(10);
-		$confirm->set_title ("Confirmation");
-		$label->show;
-		my $ok = Gtk::Button->new ("Ok");
-		$confirm->action_area->pack_start ( $ok, 1, 1, 0 );
-		$ok->can_default(1);
-		$ok->grab_default;
-		$ok->signal_connect( "clicked", sub { $confirm->destroy; &$cb($filename) } );
-		$ok->show;
-		my $cancel = Gtk::Button->new ("Cancel");
-		$confirm->action_area->pack_start ( $cancel, 1, 1, 0 );
-		$cancel->signal_connect( "clicked", sub { $confirm->destroy } );
-		$cancel->show;
-		
-		$confirm->set_position ("mouse");
-		$confirm->set_modal (1);
-		$confirm->show;
-
-		$dialog->destroy;
+		$self->confirm_window (
+			message => "Overwrite existing file '$filename'?",
+			yes_callback => sub { &$cb($filename); $dialog->destroy },
+			position => 'mouse'
+		);
 	} else {
 		&$cb($filename);
 		$dialog->destroy;
 	}
+
+	1;
+}
+
+sub confirm_window {
+	my $self = shift;
+	my %par = @_;
+	my  ($message, $yes_callback, $no_callback, $position, $yes_label, $no_label) =
+	@par{'message','yes_callback','no_callback','position','yes_label','no_label'};
+	
+	$yes_label ||= "Ok";
+	
+	my $confirm = Gtk::Dialog->new;
+	my $label = Gtk::Label->new ($message);
+	$confirm->vbox->pack_start ($label, 1, 1, 0);
+	$confirm->border_width(10);
+	$confirm->set_title ("Confirmation");
+	$label->show;
+
+	my $cancel = Gtk::Button->new ("Cancel");
+	$confirm->action_area->pack_start ( $cancel, 1, 1, 0 );
+	$cancel->signal_connect( "clicked", sub { $confirm->destroy } );
+	$cancel->show;
+
+	if ( $no_label ) {
+		my $no = Gtk::Button->new ($no_label);
+		$confirm->action_area->pack_start ( $no, 1, 1, 0 );
+		$no->signal_connect( "clicked", sub { $confirm->destroy; &$no_callback } );
+		$no->show;
+	}
+
+	my $ok = Gtk::Button->new ($yes_label);
+	$confirm->action_area->pack_start ( $ok, 1, 1, 0 );
+	$ok->can_default(1);
+	$ok->grab_default;
+	$ok->signal_connect( "clicked", sub { $confirm->destroy; &$yes_callback } );
+	$ok->show;
+
+	$confirm->set_position ($position);
+	$confirm->set_modal (1);
+	$confirm->show;
 
 	1;
 }
@@ -264,118 +293,6 @@ sub message_window {
 
 	1;	
 	
-}
-
-#---------------------------------------------------------------------
-# Debugging stuff
-# 
-# Setzen/Abfragen des Debugging Levels. Wenn als Klassenmethode
-# aufgerufen, wird das Debugging klassenweit eingeschaltet. Als
-# Objektmethode aufgerufen, wird Debugging nur für das entsprechende
-# Objekt eingeschaltet.
-#
-# Level:	0	Debugging deaktiviert
-#		1	nur aktive Debugging Ausgaben
-#		2	Call Trace, Subroutinen Namen
-#		3	Call Trace, Subroutinen Namen + Argumente
-#
-# Debuggingausgaben erfolgen im Klartext auf STDERR.
-#---------------------------------------------------------------------
-
-sub debug_level {
-	my $thing = shift;
-	my $debug;
-	if ( ref $thing ) {
-		$thing->{debug} = shift if @_;
-		$debug = $thing->{debug};
-	} else {
-		$JaM::DEBUG = shift if @_;
-		$debug = $JaM::DEBUG;
-	}
-	
-	if ( $debug ) {
-		$JaM::DEBUG::TIME = scalar(localtime(time));
-		print STDERR
-			"--- START ------------------------------------\n",
-			"$$: $JaM::DEBUG::TIME - DEBUG LEVEL $debug\n";
-	}
-	
-	return $debug;
-}
-
-#---------------------------------------------------------------------
-# Klassen/Objekt Methode
-# 
-# Gibt je nach Debugginglevel entsprechende Call Trace Informationen
-# aus bzw. tut gar nichts, wenn Debugging abgeschaltet ist.
-#---------------------------------------------------------------------
-
-sub trace_in {
-	my $thing = shift;
-	my $debug = $JaM::DEBUG;
-	$debug = $thing->{debug} if ref $thing and $thing->{debug};
-	return if $debug < 2;
-
-	# Level 1: Methodenaufrufe
-	if ( $debug == 2 ) {
-		my @c1 = caller (1);
-		my @c2 = caller (2);
-		print STDERR "$$: TRACE IN : $c1[3] (-> $c2[3])\n";
-	}
-	
-	# Level 2: Methodenaufrufe mit Parametern
-	if ( $debug == 3 ) {
-		package DB;
-		my @c = caller (1);
-		my $args = '"'.(join('","',@DB::args)).'"';
-		my @c2 = caller (2);
-		print STDERR "$$: TRACE IN : $c[3] (-> $c2[3])\n\t($args)\n";
-	}
-	
-	1;
-}
-
-sub trace_out {
-	my $thing = shift;
-	my $debug = $JaM::DEBUG;
-	$debug = $thing->{debug} if ref $thing and $thing->{debug};
-	return if $debug < 2;
-
-	my @c1 = caller (1);
-	my @c2 = caller (2);
-	print STDERR "$$: TRACE OUT: $c1[3] (-> $c2[3])";
-
-	if ( $debug == 2 ) {
-		print STDERR " DATA: ", Dumper(@_);
-	} else {
-		print STDERR "\n";
-	}
-	
-	1;
-}
-
-sub dump {
-	my $thing = shift;
-	my $debug = $JaM::DEBUG;
-	$debug = $thing->{debug} if ref $thing and $thing->{debug};
-	return if not $debug;	
-
-	if ( @_ ) {
-		print STDERR Dumper(@_);
-	} else {
-		print STDERR Dumper($thing);
-	}
-}
-
-sub debug {
-	my $thing = shift;
-	my $debug = $JaM::DEBUG;
-	$debug = $thing->{debug} if ref $thing and $thing->{debug};
-	return if not $debug;	
-
-	my @c1 = caller (1);
-	print STDERR "$$: DEBUG    : $c1[3]: ", join (",", @_), "\n";
-	1;
 }
 
 sub gdk_color {

@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.14 2001/08/17 20:08:19 joern Exp $
+# $Id: Mail.pm,v 1.16 2001/08/19 09:56:46 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -129,7 +129,6 @@ sub clear {
 	$html->begin;
 	$html->end;
 	$self->mail(undef);
-	$self->comp('subjects')->selected_mail_id(undef);
 	1;
 }
 
@@ -486,6 +485,32 @@ sub cb_show_all_header {
 	return if not $self->mail;
 	$self->show (mail_id => $self->mail->mail_id);
 	1;
+}
+
+sub open_compose_window {
+	my $self = shift; $self->trace_in;
+	
+	my $account = JaM::Account->load_default ( dbh => $self->dbh );
+	if ( not $account->smtp_server or
+	     not $account->from_name or
+	     not $account->from_adress ) {
+		$self->account_window;
+		return 1;
+	}
+	
+	my $compose = JaM::GUI::Compose->new (
+		dbh => $self->dbh
+	);
+	
+	$compose->no_signature(1);
+	$compose->build;
+
+	$compose->insert_template_message (
+		mail => $self->mail,
+	);
+	
+	return $compose;
+
 }
 
 1;

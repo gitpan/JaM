@@ -19,7 +19,8 @@ create table Folder (
 	sort_column	integer		default 3,
 	sort_direction	varchar(32)	default 'descending',
 	show_max	integer		default 500,
-	show_all	integer		default 0
+	show_all	integer		default 0,
+	undeletable	integer		default 0
 );
 
 create index Folder_idx1 on Folder(name);
@@ -141,10 +142,22 @@ insert into Config (name, description, value, visible, type)
 values ('smtp_hello', 'SMTP Hello String', 'wizard.castle', 1, 'text');
 
 insert into Config (name, description, value, visible, type)
+values ('mail_folder_id', '', '1', 0, '');
+
+insert into Config (name, description, value, visible, type)
+values ('inbox_folder_id', '', '2', 0, '');
+
+insert into Config (name, description, value, visible, type)
 values ('sent_folder_id', '', '3', 0, '');
 
 insert into Config (name, description, value, visible, type)
+values ('drafts_folder_id', '', '4', 0, '');
+
+insert into Config (name, description, value, visible, type)
 values ('trash_folder_id', '', '5', 0, '');
+
+insert into Config (name, description, value, visible, type)
+values ('templates_folder_id', '', '6', 0, '');
 
 insert into Config (name, description, value, visible, type)
 values ('x_mailer', '', 'JaM - Just a Mailer (Highly Secure Personal Free Highspeed Archiving Gtk Perl Mailer Against Micro$oftism)', 0, 'text');
@@ -222,6 +235,9 @@ insert into Config (name, description, value, visible, type)
 values ('font_name_mail_compose', 'Mail Compose Font', '-*-courier-medium-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
 
 insert into Config (name, description, value, visible, type)
+values ('default_recipient_domain', 'Default Recipient Domain', '', 1, 'text');
+
+insert into Config (name, description, value, visible, type)
 values ('database_schema_version', '', '0', 0, '');
 
 # create basic data --------------------------------------------------
@@ -229,23 +245,23 @@ values ('database_schema_version', '', '0', 0, '');
 insert into Account (id, from_name, from_adress, pop3_login, pop3_password, pop3_server, pop3_delete, smtp_server, default_account)
 values (1, '','','','','',0,'', 1);
 
-insert into Folder (id, name, parent_id, leaf, path, sibling_id)
-values (1, 'Mail', 0, 0, '/', 99999);
+insert into Folder (id, name, parent_id, leaf, path, sibling_id, undeletable)
+values (1, 'Mail', 0, 0, '/', 99999, 1);
 
-insert into Folder (id, name, parent_id, leaf, path, sibling_id)
-values (2, 'Inbox', 1, 1, '/Inbox', 3);
+insert into Folder (id, name, parent_id, leaf, path, sibling_id, undeletable)
+values (2, 'Inbox', 1, 1, '/Inbox', 3, 1);
 
-insert into Folder (id, name, parent_id, leaf, path, sibling_id)
-values (3, 'Sent', 1, 1, '/Sent', 4);
+insert into Folder (id, name, parent_id, leaf, path, sibling_id, undeletable)
+values (3, 'Sent', 1, 1, '/Sent', 4, 1);
 
-insert into Folder (id, name, parent_id, leaf, path, sibling_id)
-values (4, 'Drafts', 1, 1, '/Drafts', 5);
+insert into Folder (id, name, parent_id, leaf, path, sibling_id, undeletable)
+values (4, 'Drafts', 1, 1, '/Drafts', 5, 1);
 
-insert into Folder (id, name, parent_id, leaf, path, sibling_id)
-values (5, 'Trash', 1, 1, '/Trash', 6);
+insert into Folder (id, name, parent_id, leaf, path, sibling_id, undeletable)
+values (5, 'Trash', 1, 1, '/Trash', 6, 1);
 
-insert into Folder (id, name, parent_id, leaf, path, sibling_id)
-values (6, 'Templates', 1, 1, '/Templates', 99999);
+insert into Folder (id, name, parent_id, leaf, path, sibling_id, undeletable)
+values (6, 'Templates', 1, 1, '/Templates', 99999, 1);
 
 #</init>#
 
@@ -262,3 +278,22 @@ insert into Config (name, description, value, visible, type)
 values ('default_recipient_domain', 'Default Recipient Domain', 'zyn.de', 1, 'text');
 
 #</version2>#
+
+#<version3>#
+
+alter table Folder add undeletable integer default 0;
+update Folder set undeletable = 1 where id < 7;
+
+insert into Config (name, description, value, visible, type)
+values ('mail_folder_id', '', '1', 0, '');
+
+insert into Config (name, description, value, visible, type)
+values ('inbox_folder_id', '', '2', 0, '');
+
+insert into Config (name, description, value, visible, type)
+values ('drafts_folder_id', '', '4', 0, '');
+
+insert into Config (name, description, value, visible, type)
+values ('templates_folder_id', '', '6', 0, '');
+
+#</version3>#

@@ -1,4 +1,4 @@
-# $Id: Folder.pm,v 1.10 2001/08/16 21:23:01 joern Exp $
+# $Id: Folder.pm,v 1.11 2001/08/18 16:37:10 joern Exp $
 
 package JaM::Folder;
 
@@ -38,6 +38,8 @@ sub show_max		{ my $s = shift; $s->{show_max}
 		          = shift if @_; $s->{show_max}		}
 sub show_all		{ my $s = shift; $s->{show_all}
 		          = shift if @_; $s->{show_all}		}
+sub undeletable		{ my $s = shift; $s->{undeletable}
+		          = shift if @_; $s->{undeletable}	}
 
 my $FOLDERS;
 my $DBH;
@@ -108,7 +110,7 @@ sub query {
 				path, selected_mail_id, mail_sum, status,
 				mail_read_sum, opened, sort_column,
 				sort_direction, sibling_id, show_max,
-				show_all
+				show_all, undeletable
 			 from   Folder
 			 $where"
 		);
@@ -120,14 +122,14 @@ sub query {
 		    $path, $selected_mail_id, $mail_sum, $status,
 		    $mail_read_sum, $opened, $sort_column,
 		    $sort_direction, $sibling_id, $show_max,
-		    $show_all);
+		    $show_all, $undeletable);
 
 		$sth->bind_columns (\(
 		    $id, $name, $parent_id, $leaf,
 		    $path, $selected_mail_id, $mail_sum, $status,
 		    $mail_read_sum, $opened, $sort_column,
 		    $sort_direction, $sibling_id, $show_max,
-		    $show_all
+		    $show_all, $undeletable
 		));
 
 		while ( $sth->fetch ) {
@@ -148,6 +150,7 @@ sub query {
 				sort_direction      => $sort_direction,
 				show_max	    => $show_max,
 				show_all	    => $show_all,
+				undeletable	    => $undeletable,
 			};
 			$folders{$id} = bless $self, $type;
 		}
@@ -215,7 +218,7 @@ sub save {
 			path=?, selected_mail_id=?, mail_sum=?,
 			mail_read_sum=?, opened=?, sort_column=?,
 			sort_direction=?, show_max=?, show_all=?,
-			status=?
+			status=?, undeletable=?
 		 where id=?", {},
 		 $self->{sibling_id}, $self->{name},
 		 $self->{parent_id}, $self->{leaf}, $self->{path},
@@ -223,6 +226,7 @@ sub save {
 		 $self->{mail_read_sum}, $self->{opened},
 		 $self->{sort_column}, $self->{sort_direction},
 		 $self->{show_max}, $self->{show_all}, $self->{status},
+		 $self->{undeletable},
 		 $self->{id}
 	);
 
@@ -333,6 +337,17 @@ sub childs {
 	);
 }
 
+sub descendants {
+	my $self = shift;
+	
+	my $path = $self->path;
+	$path = $path.'/%';
+
+	return (ref $self)->query (
+		where => "path like '$path'"
+	);
+}
+
 sub parent_id {
 	my $self = shift;
 	my ($value) = @_;
@@ -354,6 +369,37 @@ sub parent_id {
 	}
 	
 	return $value;
+}
+
+sub delete_content {
+	my $self = shift;
+	
+	my $desc = $self->descendants;
+	my @desc_ids = keys %{$desc};
+	
+	my $delete_mail_folder_ids = join (',', @desc_ids, $self->id);
+	my $delete_folder_ids      = join (',', @desc_ids);
+
+	my ($cnt) = $self->dbh->do (
+		"delete from Mail where folder_id in ($delete_mail_folder_ids)"
+	);
+	
+	if ( $delete_folder_ids ) {
+		$cnt = $self->dbh->do (
+			"delete from Folder where id in ($delete_folder_ids)"
+		);
+	
+		delete @$FOLDERS{@desc_ids};
+	}
+	
+	$self->mail_sum(0);
+	$self->mail_read_sum(0);
+	$self->leaf(1);
+	$self->save;
+	
+	my %desc_ids;
+	@desc_ids{@desc_ids} = (1) x @desc_ids;
+	return \%desc_ids;
 }
 
 1;

@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.7 2001/08/12 12:32:22 joern Exp $
+# $Id: Mail.pm,v 1.8 2001/08/19 09:56:45 joern Exp $
 
 package JaM::Mail;
 
@@ -12,7 +12,7 @@ use JaM::Folder;
 use vars qw($VERSION $REVISION @ISA @EXPORT);
 
 $VERSION = '0.01';
-$REVISION = '$Revision: 1.7 $';
+$REVISION = '$Revision: 1.8 $';
 
 use Storable qw ( thaw );
 use MIME::WordDecoder;
@@ -118,6 +118,26 @@ sub move_to_folder {
 	1;
 }
 
+sub delete {
+	my $self = shift;
+	
+	$self->dbh->do (
+		"delete from Mail where id=?", {},
+		$self->mail_id
+	);
+	
+	# update Folder statistics
+	my $status = $self->status;
+
+	# decrement values of folder
+	my $folder = JaM::Folder->by_id($self->folder_id);
+	$folder->mail_sum($folder->mail_sum - 1);
+	$folder->mail_read_sum($folder->mail_read_sum - 1) if $status eq 'R';
+	$folder->save;
+	
+	1;
+}
+	
 package JaM::Entity;
 
 sub entity		{ shift->{entity}				}

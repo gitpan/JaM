@@ -1,6 +1,8 @@
 package JaM::Drop;
 
-use vars qw ( $DEBUG $VERBOSE );
+use vars qw ( $DEBUG $VERBOSE @ISA );
+
+@ISA = qw ( JaM::Debug );
 
 use strict;
 use MIME::Parser;
@@ -9,6 +11,8 @@ use MIME::WordDecoder;
 use Storable qw( freeze );
 use JaM::Filter::IO;
 use JaM::Folder;
+use JaM::Mail;
+use JaM::Debug;
 
 $DEBUG = 0;
 $VERBOSE = 0;

@@ -1,4 +1,4 @@
-# $Id: Folders.pm,v 1.16 2001/08/16 21:23:02 joern Exp $
+# $Id: Folders.pm,v 1.18 2001/08/19 09:56:45 joern Exp $
 
 package JaM::GUI::Folders;
 
@@ -6,6 +6,7 @@ package JaM::GUI::Folders;
 
 use strict;
 use JaM::GUI::Component;
+use JaM::GUI::Compose;
 use JaM::Folder;
 
 my $DEBUG = 0;
@@ -117,6 +118,14 @@ sub gtk_unread_style	{ my $s = shift; $s->{gtk_unread_style}
 # get/set gtk style for folder with unread child folders
 sub gtk_unread_child_style { my $s = shift; $s->{gtk_unread_child_style}
 		             = shift if @_; $s->{gtk_unread_child_style}			}
+
+# popup menu separator for "Create Template"
+sub gtk_template_sep	{ my $s = shift; $s->{gtk_template_sep}
+		          = shift if @_; $s->{gtk_template_sep}			}
+
+# popup menu item for "Create Template"
+sub gtk_template_item	{ my $s = shift; $s->{gtk_template_item}
+		          = shift if @_; $s->{gtk_template_item}		}
 
 # helper method for setting up pixmaps
 sub initialize_pixmap {
@@ -233,6 +242,17 @@ sub build {
 	$item->signal_connect ("activate", sub { $self->cb_add_input_filter ( @_ ) } );
 	$item->show;
 
+	$item = Gtk::MenuItem->new;
+	$popup->append($item);
+
+	$self->gtk_template_sep ( $item );
+
+	$item = Gtk::MenuItem->new ("Create New Template...");
+	$popup->append($item);
+	$item->signal_connect ("activate", sub { $self->cb_create_new_template ( @_ ) } );
+
+	$self->gtk_template_item ( $item );
+
 	$self->widget ($folders);
 
 	$self->update_folder_stati;
@@ -288,8 +308,6 @@ sub insert_folder_item {
 	my  ($folder_object, $sibling_item) =
 	@par{'folder_object','sibling_item'};
 	
-	$self->dump($folder_object);
-	
 	my $folder_items = $self->gtk_folder_items;
 	my $tree = $self->gtk_folders_tree;
 	my $parent_id = $folder_object->parent_id;
@@ -334,6 +352,14 @@ sub cb_click_clist {
 	$self->popup_row ($widget->node_nth( $row ));
 
 	if ( $event->{button} == 3 and $widget->{'popup'} ) {
+		if ( $self->popup_folder_object->folder_id ==
+		     $self->config('templates_folder_id') ) {
+			$self->gtk_template_sep->show;
+			$self->gtk_template_item->show;
+		} else {
+			$self->gtk_template_sep->hide;
+			$self->gtk_template_item->hide;
+		}
 		$widget->{'popup'}->popup(undef,undef,$event->{button},1);
 	}
 
@@ -360,6 +386,20 @@ sub cb_rename_folder {
 		}
 	);
 
+	1;
+}
+
+sub cb_create_new_template {
+	my $self = shift;
+	
+	my $compose = JaM::GUI::Compose->new (
+		dbh => $self->dbh
+	);
+	
+	$compose->save_as_template(1);
+
+	$compose->build;
+	
 	1;
 }
 
@@ -584,8 +624,6 @@ sub create_folder {
 	my $folder_items = $self->gtk_folder_items;
 	my $folders_tree = $self->gtk_folders_tree;
 	
-	$self->dump($folder_items->{$parent_id});
-
 	my $parent_item = $folder_items->{$parent_folder_object->id};
 	my $sibling_item;
 	my $sibling_folder_object;
@@ -622,16 +660,18 @@ sub cb_tree_move {
 	my $self = shift;
 	my ($ctree, $moved, $parent, $sibling) = @_;
 
-	return if not $parent;
+	my $moved_object  = JaM::Folder->by_id($moved->{folder_id});
 
 	my $sibling_object;
 	$sibling_object   = JaM::Folder->by_id($sibling->{folder_id}) if $sibling;
-	my $moved_object  = JaM::Folder->by_id($moved->{folder_id});
-	my $parent_object = JaM::Folder->by_id($parent->{folder_id});
+
+	my $parent_object;
+	$parent_object = JaM::Folder->by_id($parent->{folder_id}) if $parent;
+	$parent_object = JaM::Folder->by_id(1) if not $parent;
 
 	$self->move_tree (
-		moved_object => $moved_object,
-		parent_object => $parent_object,
+		moved_object   => $moved_object,
+		parent_object  => $parent_object,
 		sibling_object => $sibling_object,
 	);
 	
@@ -644,6 +684,11 @@ sub move_tree {
 
 	my  ($moved_object, $parent_object, $sibling_object) =
 	@par{'moved_object','parent_object','sibling_object'};
+	
+	$self->debug("moved_object");$self->dump ($moved_object);
+	$self->debug("parent_object");$self->dump ($parent_object);
+	$self->debug("sibling_object");$self->dump ($sibling_object);
+	
 	
 	# rename folder if name clashes with siblings in the new folder
 	while (1) {
@@ -766,6 +811,23 @@ sub cb_delete_folder {
 		return 1;
 	}
 
+	# check if the trash folder is a descendant of this folder
+	my $desc = $folder_object->descendants;
+	if ( defined $desc->{$trash_id} ) {
+		$self->message_window (
+			message => "The trash folder is a descendant of this folder."
+		);
+		return 1;
+	}
+
+	# check if this folder is undeletable
+	if ( $folder_object->undeletable ) {
+		$self->message_window (
+			message => "You can't delete this folder."
+		);
+		return 1;
+	}
+
 	# update database
 	$self->move_tree (
 		moved_object => $folder_object,
@@ -870,5 +932,37 @@ sub cb_add_input_filter {
 	
 	1;
 }
+
+sub empty_trash_folder {
+	my $self = shift;
+	
+	my $trash_folder_id = $self->config('trash_folder_id');
+	
+	my $folder = JaM::Folder->by_id($trash_folder_id);
+
+	my $folder_item = $self->gtk_folder_items->{$trash_folder_id};
+	my $sibling_id = $folder->sibling_id;
+
+	my $sibling_item;
+	if ( $sibling_id ) {
+		$sibling_item = $self->gtk_folder_items->{$sibling_id};
+	}
+
+	$folder->delete_content;
+
+	$self->gtk_folders_tree->remove($folder_item);
+
+	$self->insert_folder_item (
+		folder_object => $folder,
+		sibling_item  => $sibling_item,
+	);
+
+	$self->comp('folders')->update_folder_item (
+		folder_object => $folder
+	);
+	
+	1;
+}
+
 
 1;

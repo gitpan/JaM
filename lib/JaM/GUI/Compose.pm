@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.14 2001/08/17 20:08:18 joern Exp $
+# $Id: Compose.pm,v 1.16 2001/08/19 09:56:45 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -14,6 +14,7 @@ use MIME::Types;
 use Net::SMTP;
 use File::Basename;
 use POSIX;
+use Carp;
 
 sub gtk_win		{ my $s = shift; $s->{gtk_win}
 		          = shift if @_; $s->{gtk_win}			}
@@ -39,6 +40,27 @@ sub to_header_choices	{ my $s = shift; $s->{to_header_choices}
 		          = shift if @_; $s->{to_header_choices}	}
 sub attachments		{ my $s = shift; $s->{attachments}
 		          = shift if @_; $s->{attachments}		}
+sub additional_headers	{ my $s = shift; $s->{additional_headers}
+		          = shift if @_; $s->{additional_headers}	}
+sub no_signature	{ my $s = shift; $s->{no_signature}
+		          = shift if @_; $s->{no_signature}		}
+sub save_as_template	{ my $s = shift; $s->{save_as_template}
+		          = shift if @_; $s->{save_as_template}		}
+sub save_as_draft	{ my $s = shift; $s->{save_as_draft}
+		          = shift if @_; $s->{save_as_draft}		}
+			  
+sub delete_mail_after_send  { my $s = shift; $s->{delete_mail_after_send}
+		              = shift if @_; $s->{delete_mail_after_send}  }
+
+sub add_header {
+	my $self = shift;
+	my ($name, $value) = @_;
+	
+	push @{$self->{additional_headers}},
+		{ name => $name, value => $value };
+	
+	1;
+}
 
 sub build {
 	my $self = shift;
@@ -71,11 +93,12 @@ sub build {
 	$win->border_width(3);
 	$win->set_default_size (600, 700);
 	$win->realize;
+	$win->signal_connect ("delete-event", sub { $self->close_window } );
 
 	$self->gtk_to_entries->[0]->grab_focus;
 	$self->gtk_win($win);
 	$self->attachments([]);
-
+	$self->additional_headers([]);
 	$win->show;
 
 	1;
@@ -90,8 +113,13 @@ sub create_toolbar {
 	$toolbar->set_button_relief( 'none' ); 
 	$toolbar->border_width( 0 );
 
+	my $label = $self->save_as_template ?
+		'Save As Template' : 'Send Message';
+	my $tooltip = $self->save_as_template ?
+		'Save as template' : 'Send message';
+
 	my $send_button = $toolbar->append_item (
-		"Send Message", "Send message", undef, undef
+		$label, $tooltip, undef, undef
 	);
 
 	$send_button->signal_connect ("clicked", sub { $self->cb_send_button (@_) } );
@@ -219,7 +247,7 @@ sub cb_to_entry_key_press {
 	
 	if ( $event->{keyval} == 65289 or $event->{keyval} == 65293 ) {
 		my $text = $widget->get_text;
-		if ( $text !~ /\@/ ) {
+		if ( $text !~ /\@/ and $self->config('default_recipient_domain') ) {
 			$text .= '@'.$self->config('default_recipient_domain');
 			$widget->set_text($text);
 		}
@@ -306,7 +334,7 @@ sub create_body {
 
 	$self->gtk_text ($text);
 
-	$self->add_signature;
+	$self->add_signature if not $self->no_signature;
 	$text->set_point (0);
 
 	return $table;
@@ -364,7 +392,8 @@ sub add_signature {
 
 sub cb_send_button {
 	my $self = shift;
-	
+	my %par = @_;
+
 	my $to_entries = $self->gtk_to_entries;
 	my $to_headers = $self->to_header_choices;
 	
@@ -381,7 +410,7 @@ sub cb_send_button {
 		}
 		++$i;
 	}
-		
+	
 	my $account = JaM::Account->load_default ( dbh => $self->dbh )
 		or return;
 
@@ -397,6 +426,10 @@ sub cb_send_button {
 	my $x_mailer =
 		$self->config('x_mailer').", Version ".
 		$JaM::VERSION;
+	
+	foreach my $add_head ( @{$self->additional_headers} ) {
+		$header{"$add_head->{name}:"} = $add_head->{value};
+	}
 	
 	my $mail = MIME::Entity->build (
 		%header,
@@ -414,26 +447,28 @@ sub cb_send_button {
 		mail => $mail,
 	);
 
-	my $smtp;
-	eval {
-		$smtp = Net::SMTP->new(
-			$account->smtp_server,
-			Hello   => $self->config('smtp_hello'),
-			Timeout => 60,
-			Debug   => 0,
-		);
-		die "Helo" if not $smtp;
-		die "From" if not $smtp->mail($from);
-		die "To"       if not $smtp->to(@to);
-		die "Data"     if not $smtp->data();
-		$self->debug("now mail->as_string");
-		die "Body"     if not $smtp->datasend($mail->as_string);
-		$self->debug("finished mail->as_string");
-		die "Dataend"  if not $smtp->dataend();
-	};
-	if ( $@ ) {
-		warn "smtp error: $@";
-		return 1;
+	if ( not $self->save_as_draft and not $self->save_as_template ) {
+		my $smtp;
+		eval {
+			$smtp = Net::SMTP->new(
+				$account->smtp_server,
+				Hello   => $self->config('smtp_hello'),
+				Timeout => 60,
+				Debug   => 0,
+			);
+			die "Helo" if not $smtp;
+			die "From" if not $smtp->mail($from);
+			die "To"       if not $smtp->to(@to);
+			die "Data"     if not $smtp->data();
+			$self->debug("now mail->as_string");
+			die "Body"     if not $smtp->datasend($mail->as_string);
+			$self->debug("finished mail->as_string");
+			die "Dataend"  if not $smtp->dataend();
+		};
+		if ( $@ ) {
+			warn "smtp error: $@";
+			return 1;
+		}
 	}
 
 	my $dropper = JaM::Drop->new (
@@ -441,10 +476,27 @@ sub cb_send_button {
 		type => 'output',
 	);
 
-	my ($mail_id, $folder_id) = $dropper->drop_mail (
-		entity => $mail,
-		status => 'R',
-	);
+	my ($mail_id, $folder_id);
+	
+	if ( not $self->save_as_draft and not $self->save_as_template  ) {
+		($mail_id, $folder_id) = $dropper->drop_mail (
+			entity => $mail,
+			status => 'R',
+		);
+
+	} else {
+		$folder_id = $self->config('drafts_folder_id')
+			if $self->save_as_draft;
+
+		$folder_id = $self->config('templates_folder_id')
+			if $self->save_as_template;
+
+		($mail_id) = $dropper->drop_mail (
+			entity => $mail,
+			status => ($self->save_as_draft ? 'N' : 'R'),
+			folder_id => $folder_id
+		);
+	}
 
 	my $subjects = $self->comp('subjects');
 	my $folders  = $self->comp('folders');
@@ -460,6 +512,37 @@ sub cb_send_button {
 
 	$self->close;
 	
+	my $delete_mail;
+	if ( $delete_mail = $self->delete_mail_after_send ) {
+		my $subjects = $self->comp('subjects');
+		my $delete_mail_id = $delete_mail->mail_id;
+
+		# is this mail in the currently selected folder?
+		# (then we need to update the GUI)
+
+		my $folder_id = $delete_mail->folder_id;
+
+		if ( $folder_id == $subjects->folder_object->folder_id ) {
+		     	# find row in subjects
+			my $row = 0;
+			foreach my $mail_id ( @{$subjects->mail_ids} ) {
+				last if $mail_id == $delete_mail_id;
+				++$row;
+			}
+
+			$subjects->remove_rows (
+				rows => [ $row ],
+			);
+		}
+		
+		$delete_mail->delete;
+
+		$self->comp('folders')->update_folder_item (
+			folder_object => JaM::Folder->by_id($folder_id)
+		);
+		
+	}
+	
 	return 1;
 }
 
@@ -469,10 +552,17 @@ sub get_rfc822_date {
 	my ($oldlocale, $date);
 	my $now = time();
 
-	$oldlocale = POSIX::setlocale (LC_TIME); # save the old locale
-	POSIX::setlocale (LC_TIME, "en"); # set the locale to RFC822's
-	$date = POSIX::strftime ("%a, %e %b %Y %T %Z", localtime($now)); # generate the local time string
-	POSIX::setlocale (LC_TIME, $oldlocale); # revert the locale (not needed?)
+	# save the old locale
+	$oldlocale = POSIX::setlocale (LC_TIME);
+
+	# set the locale to RFC822's
+	POSIX::setlocale (LC_TIME, "en");
+	
+	# generate the local time string
+ 	$date = POSIX::strftime ("%a, %e %b %Y %T %Z", localtime($now));
+	
+	# revert the locale
+	POSIX::setlocale (LC_TIME, $oldlocale);
 
 	return $date;
 }
@@ -555,14 +645,21 @@ sub insert_reply_message {
 				next if $to{$value};
 				$gtk_to_entries->[@{$gtk_to_entries}-1]->set_text ($value);
 				$gtk_to_options->[@{$gtk_to_entries}-1]->set_history(
-					$field eq 'from' ? 0 : 1
+					$field eq 'from' or $field eq 'reply-to' ? 0 : 1
 				);
 				$to_header_choices->[@{$gtk_to_entries}-1] =
-					$field eq 'from' ? 'To' : 'CC';
+					$field eq 'from' or $field eq 'reply-to' ? 'To' : 'CC';
 				$self->add_recipient_widget;
 				$to{$value} = 1;
 			}
 		}
+	}
+
+	my $msgid;
+	if ( $msgid = $mail->head_get('message-id') ) {
+		$self->add_header (
+			"in-reply-to", $msgid
+		);
 	}
 
 	1;
@@ -571,9 +668,12 @@ sub insert_reply_message {
 sub cb_add_button {
 	my $self = shift; $self->trace_in;
 	
+	my $dir = $self->session_parameters->{'attachment_source_dir'};
+	$dir ||= $self->config ('attachment_source_dir');
+	
 	$self->show_file_dialog (
 		title	 => "Select attachment file...",
-		dir 	 => $self->config ('attachment_source_dir'),
+		dir 	 => $dir,
 		filename => "",
 		confirm  => 0,
 		cb 	 => sub { $self->add_attachment ( filename => $_[0] ) }
@@ -584,29 +684,57 @@ sub cb_add_button {
 sub add_attachment {
 	my $self = shift;
 	my %par = @_;
-	my ($filename, $mail) = @par{'filename','mail'};
+	my  ($filename, $mail, $copy_attachments) =
+	@par{'filename','mail','copy_attachments'};
 	
-	confess ("no parameter set") if not $filename and not $mail;
+	confess ("no parameter set")
+		if not $filename and not $mail and not $copy_attachments;
 	
-	my $attachments = $self->attachments;
+	$self->session_parameters->{'attachment_source_dir'} = dirname $filename
+		if $filename;
 
-	my $name = $filename ? basename($filename) : "[Fwd: ".$mail->subject."]";
+	my $attachments = $self->attachments;
+	my ($name, $item);
 	
 	if ( $filename ) {
+		$name = basename($filename);
 		push @{$attachments}, {
 			filename => $filename,
 			name => $name
 		};
+
+		$item = Gtk::ListItem->new ($name);
+		$item->show;
+		$self->gtk_attachment_list->append_items($item);
+
 	} elsif ( $mail) {
+		$name = "[Fwd: ".$mail->subject."]";
 		push @{$attachments}, {
 			mail => $mail,
 			name => $name
 		};
+
+		$item = Gtk::ListItem->new ($name);
+		$item->show;
+		$self->gtk_attachment_list->append_items($item);
+
+	} elsif ( $copy_attachments ) {
+		my $first = 1;
+		foreach my $part ( @{$copy_attachments->parts} ) {
+			if  ( $first ) {
+				$first = 0;
+				next;
+			}
+			$name = $part->filename;
+			push @{$attachments}, {
+				part   => $part,
+				name   => $name
+			};
+			$item = Gtk::ListItem->new ($name);
+			$item->show;
+			$self->gtk_attachment_list->append_items($item);
+		}
 	}
-	
-	my $item = Gtk::ListItem->new ($name);
-	$item->show;
-	$self->gtk_attachment_list->append_items($item);
 	
 	1;
 }
@@ -628,6 +756,17 @@ sub add_attachments_to_mail {
 				Type => $mime_type,
 				Encoding => $encoding
 			);
+		} elsif ( $att->{part} ) {
+			my $filename = $att->{part}->filename;
+			my ($mime_type, $encoding) =
+				MIME::Types::by_suffix($filename);
+			my $part = $mail->attach (
+				Data => $att->{part}->body->as_string,
+				Type => $mime_type,
+				Encoding => $encoding,
+				Filename => $filename
+			);
+			
 		} else {
 			$mail->attach (
 				Data => $att->{mail}->entity->as_string,
@@ -730,6 +869,77 @@ sub wrap_mail_text {
 	}
 	
 	$$text_sref = $new_text;
+	
+	1;
+}
+
+sub close_window {
+	my $self = shift;
+	
+	$self->confirm_window (
+		message => "Do you want to save the unsent message in the Drafts folder?",
+		position => 'center',
+		yes_label => "Yes",
+		no_label => "No",
+		yes_callback => sub {
+			$self->save_as_draft(1);
+			$self->cb_send_button;
+			$self->gtk_win->destroy;
+		},
+		no_callback  => sub {
+			$self->gtk_win->destroy;
+		},
+	);
+
+	1;
+}
+
+sub insert_template_message {
+	my $self = shift;
+	my %par = @_;
+	my ($mail) = @par{'mail'};
+	
+	my %history = ( "To" => 0, "CC" => 1, "Reply-To" => 3);
+
+	my $gtk_to_entries    = $self->gtk_to_entries;
+	my $gtk_to_options    = $self->gtk_to_options;
+	my $to_header_choices = $self->to_header_choices;
+
+	my $mail_comp = $self->comp('mail');
+
+	my ($value, @values);
+	foreach my $field ( "Reply-To", "To", "CC", ) {
+		@values = $mail->head_get ($field);
+		foreach $value ( @values ) {
+			$value = $mail->word_decode ($value);
+			$value =~ s/\s+$//;
+			my @addresses = Mail::Address->parse ($value);
+			foreach my $adr ( @addresses ) {
+				$value = $adr->address;
+				$gtk_to_entries->[@{$gtk_to_entries}-1]->set_text ($value);
+				$gtk_to_options->[@{$gtk_to_entries}-1]->set_history(
+					$history{$field}
+				);
+				$to_header_choices->[@{$gtk_to_entries}-1] = $field;
+				$self->add_recipient_widget;
+			}
+		}
+	}
+
+	if ( $mail->body ) {
+		my $text = $self->gtk_text;
+		$text->insert (undef, undef, undef, $mail->body->as_string);
+	} elsif ( $mail->parts ) {
+		my $text = $self->gtk_text;
+		$text->insert (undef, undef, undef, $mail->parts->[0]->body->as_string);
+	}
+	
+	my $subject = $mail->joined_head('subject');
+	$self->gtk_subject->set_text ($subject);
+	
+	$self->add_attachment (
+		copy_attachments => $mail
+	);
 	
 	1;
 }

@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.25 2001/08/16 21:23:01 joern Exp $
+# $Id: GUI.pm,v 1.27 2001/08/19 09:56:45 joern Exp $
 
 package JaM::GUI;
 
@@ -200,6 +200,11 @@ sub create_menubar {
                 { path        => '/File/_Netscape Import...',
                   callback    => sub { $self->netscape_import_window } },
 
+		{ path	      => '/File/sep2',
+		  type	      => '<Separator>' },
+                { path        => '/File/Empty _Trash...',
+                  callback    => sub { $self->ask_empty_trash_folder } },
+
 		{ path	      => '/File/sep5',
 		  type	      => '<Separator>' },
                 { path        => '/File/_Exit',
@@ -270,21 +275,6 @@ sub create_menubar {
 	$win->add_accel_group ( $accel_group );
 	my $menubar = $self->gtk_menubar ( $item_factory->get_widget( '<main>' ) );
 	$menubar->show;
-
-#	my $menubar = new Gtk::MenuBar;
-#	$menubar->show;
-#	my $menu = new Gtk::Menu;
-#	my $menuitem = new Gtk::MenuItem("Exit");
-#	$menu->append($menuitem);
-#	signal_connect $menuitem activate => sub { $win->destroy };
-#	$menuitem->show;
-#	
-#	$menuitem = new Gtk::MenuItem("File");
-#	$menuitem->set_submenu($menu);
-#	$menubar->append($menuitem);
-#	$menuitem->show;
-#	
-#	$self->gtk_menubar ($menubar);
 
 	return $menubar;
 }
@@ -557,7 +547,7 @@ sub cb_new_button {
 	
 	$compose->build;
 	
-	1;
+	return $compose;
 }
 
 sub cb_reply_button {
@@ -868,6 +858,16 @@ sub netscape_import_window{
 	$import->build;
 	
 	1;
+}
+
+sub ask_empty_trash_folder {
+	my $self = shift;
+	
+	$self->confirm_window (
+		message => "Do you want to empty the trash folder?",
+		position => 'center',
+		yes_callback => sub { $self->comp('folders')->empty_trash_folder }
+	);
 }
 
 1;

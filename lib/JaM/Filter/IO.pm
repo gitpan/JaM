@@ -1,6 +1,8 @@
-# $Id: IO.pm,v 1.2 2001/08/16 21:23:02 joern Exp $
+# $Id: IO.pm,v 1.3 2001/08/18 16:37:10 joern Exp $
 
 package JaM::Filter::IO;
+
+my $DEBUG = 0;
 
 use strict;
 use Carp;
@@ -249,15 +251,27 @@ sub calculate_code {
 	my $op        = $self->operation;
 	my $action    = $self->action;
 	my $folder_id = $self->folder_id || 'undef';
-	
+
+	if ( $DEBUG ) {	
+		$code .= qq{print STDERR "apply filter: }.quotemeta($self->name).qq{\\n";\n};
+	}
+
 	$code .= "return ('$action', $folder_id) if ";
+
+	my $condition;
 	foreach my $rule ( @{$self->rules} ) {
-		$code .= $rule->code." $op ";
+		$rule->calculate_code;
+		$condition .= $rule->code." $op ";
 	}
 	
-	$code =~ s/ $op $//;
-	
-	$code .= ";";
+	$condition =~ s/ $op $//;
+
+	if ( $DEBUG ) {
+		$code .= qq{print STDERR "apply filter: }.quotemeta($self->name).qq{ ($condition)\\n" and $condition;};
+		$code .= qq{print STDERR "didn't match\\n";\n};
+	} else {
+		$code .= $condition.";\n";
+	}
 
 	return $self->code ($code);
 }
@@ -330,20 +344,24 @@ sub calculate_code {
 	$value = quotemeta($value) if $operation ne 'regex';
 
 	my $code;
+	
 	if ( $field eq 'body' ) {
-		$code = "\$h->{entity}->bodyhandle->as_string ";
+		$code .= "\$h->{entity}->bodyhandle->as_string ";
 	} else {
-		$code = "\$h->{$field} ";
+		$code .= "\$h->{$field} ";
 	}
 
 	if ( $operation eq 'contains' or $operation eq 'regex' ) {
-		$code .= "=~ m!$value!";
+		$code .= "=~ m!$value!i";
+
 	} elsif ( $operation eq 'contains!' ) {
-		$code .= "!~ m!$value!";
+		$code .= "!~ m!$value!i";
+
 	} elsif ( $operation eq 'begins' ) {
-		$code .= "=~ m!^$value!";
+		$code .= "=~ m!^$value!i";
+
 	} elsif ( $operation eq 'ends' ) {
-		$code .= "=~ m!$value\$!";
+		$code .= "=~ m!$value\$!i";
 	}
 	
 	return $self->code($code);	
@@ -433,7 +451,11 @@ sub init {
 	);
 	
 	my $code = "sub {\nmy \$h=shift;\n";
-	
+
+	if ( $DEBUG ) {
+		$code .= "my \%hd = \%\{\$h\}; delete \$hd{entity}; use Data::Dumper; print STDERR Dumper(\\\%hd);\n";
+	}
+
 	my $loaded_filter;
 	my $changed = 0;
 	foreach my $filter ( @{$filters} ) {
@@ -463,6 +485,11 @@ sub init {
 		$sub = eval $code;
 		$error = $@;
 	}
+
+	if ( $DEBUG ) {	
+		print STDERR "code=\n$code\n\nerror=\n$error\n";
+	}
+	
 	$FILTER_COMBINED_CODE{$type} = $sub;
 
 	my $self = {

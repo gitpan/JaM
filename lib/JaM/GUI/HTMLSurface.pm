@@ -1,4 +1,4 @@
-# $Id: HTMLSurface.pm,v 1.9 2001/08/17 20:08:19 joern Exp $
+# $Id: HTMLSurface.pm,v 1.10 2001/08/18 16:37:11 joern Exp $
 
 package JaM::GUI::HTMLSurface;
 
@@ -10,6 +10,7 @@ use Gtk::HTML;
 use FileHandle;
 use Data::Dumper;
 use JaM::GUI::Base;
+use File::Basename;
 
 sub widget 	    { shift->{widget}	    }
 sub image_dir 	    { shift->{image_dir}    }
@@ -145,9 +146,12 @@ sub cb_save_attachment_file_dialog {
 		$filename = "";
 	}
 
+	my $dir = $self->session_parameters->{'attachment_target_dir'};
+	$dir ||= $self->config ('attachment_target_dir');
+
 	$self->show_file_dialog (
 		title	 => "Save as...",
-		dir 	 => $self->config ('attachment_target_dir'),
+		dir 	 => $dir,
 		filename => $filename,
 		confirm  => 1,
 		cb 	 => sub { $self->cb_save_attachment_file_selected ( filename => $_[0], url => $url ) }
@@ -162,6 +166,8 @@ sub cb_save_attachment_file_selected {
 	my ($filename, $url) = @par{'filename','url'};
 
 	$self->debug ("save attachment: url=$url filename=$filename");
+
+	$self->session_parameters->{'attachment_target_dir'} = dirname $filename;
 
 	my $image_dir = $self->image_dir;
 	my $source_filename = "$image_dir/$url";

@@ -4,16 +4,12 @@ Known bugs:
   colored too, sometimes.
 - on folder change (rename, move, delete etc.) recalculate
   folder context popup. otherwise there are inconsistencies
-  e.g. in the io filter window.
+  e.g. in a opened io filter window.
 - if you move all mails away from a folder, its statistic is
   not updated correctly in the folder treeview
 
 This is my actual TODO list:
 ----------------------------
-- attachment file selecter:
-  - memorize selected folder per session
-  - add a button to change to the default directory
-- empty trash
 - mark a selection of mails as read
 - edit configuration parameters
 - input filter: delete operation
@@ -24,7 +20,6 @@ This is my actual TODO list:
 - prevent opening several instance of the same window, if
   this makes no sense (e.g. account window)
 - address book
-- compose close: ask, if mail should be moved to Drafts
 - make browser application configurable
 - check RFC:
   - which Charset should be used when replying mail?

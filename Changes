@@ -1,4 +1,24 @@
-$Id: Changes,v 1.5 2001/08/17 20:08:18 joern Exp $
+$Id: Changes,v 1.7 2001/08/19 09:56:45 joern Exp $
+
+0.9.6 2001/08/18 joern
+	Bugfixes:
+	- filtering was case sensitive
+	- moving a folder to the top level did not work since
+	  i omitted the top "Mail" folder (version 0.9.4)
+	- the new Config value 'default_recipient_domain' was not
+	  created by first database setup, only via updating
+
+	Features:
+	- In-Reply-To header added	
+	- file selection boxes remember last selected directory
+	  inside the same session. if you restart JaM the corresponding
+	  configuried default value will be used again.
+	- empty trash
+	- deletion of the standard folders is now impossible
+	- ask for saving new mail to Drafts if the composse window is
+	  closed
+	- writing mail based on a Draft
+	- create mail templates and write mails based on templates
 
 0.9.5 2001/08/17 joern
 	Bugfixes:

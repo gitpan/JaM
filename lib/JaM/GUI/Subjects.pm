@@ -1,4 +1,4 @@
-# $Id: Subjects.pm,v 1.14 2001/08/16 21:23:03 joern Exp $
+# $Id: Subjects.pm,v 1.16 2001/08/19 09:56:46 joern Exp $
 
 package JaM::GUI::Subjects;
 
@@ -30,7 +30,7 @@ sub gtk_subjects_list	{ my $s = shift; $s->{gtk_subjects_list}
 		          = shift if @_; $s->{gtk_subjects_list}	}
 
 # get/set currently first selected mail id
-sub selected_mail_id	{ my $s = shift; $s->{selected_mail_id}
+sub selected_mail_id	{ my $s = shift; $s->trace_in; $s->{selected_mail_id}
 		          = shift if @_; $s->{selected_mail_id}		}
 
 sub gtk_folder_menu	{ my $s = shift; $s->{gtk_folder_menu}
@@ -230,7 +230,10 @@ sub show {
 	return if not $folder_object;
 
 	$self->folder_object ( $folder_object );
-	my $is_sent_folder = ($folder_object->id == $self->config('sent_folder_id'));
+	my $is_sent_folder =
+		($folder_object->id == $self->config('sent_folder_id') or
+		 $folder_object->id == $self->config('drafts_folder_id') or
+		 $folder_object->id == $self->config('templates_folder_id') );
 
 	$self->debug ("folder_id=".$folder_object->id);
 
@@ -333,13 +336,13 @@ sub show {
 	
 	if ( $cnt ) {
 		# select the correct entry
-		# (not column 0, because this would lead to status switch)
-		$list->select_row( $selected_row, 1 );
+		$list->select_row( $selected_row, -1 );
 
 		# scroll list to see the selected row
 		$list->moveto( $selected_row, 0, 0.5, 0 ); 
 	} else {
 		$self->comp('mail')->clear;
+		$self->selected_mail_id(undef);
 	}
 
 	1;
@@ -354,7 +357,10 @@ sub prepend_new_mail {
 	my $dbh = $self->dbh;
 	my $folder_object = $self->folder_object;
 
-	my $is_sent_folder = ($folder_object->id == $self->config('sent_folder_id'));
+	my $is_sent_folder =
+		($folder_object->id == $self->config('sent_folder_id') or
+		 $folder_object->id == $self->config('drafts_folder_id') or
+		 $folder_object->id == $self->config('templates_folder_id') );
 
 	my $sender_column;
 	if ( $is_sent_folder ) {
@@ -405,16 +411,30 @@ sub prepend_new_mail {
 sub remove_selected {
 	my $self = shift;
 
+	my $clist = $self->gtk_subjects_list;
+	my @rows  = $clist->selection;
+
+	$self->remove_rows (
+		rows => \@rows
+	);
+
+	1;
+}
+
+sub remove_rows {
+	my $self = shift;
+	my %par = @_;
+	my ($rows) = @par{'rows'};
+
 	my $clist    = $self->gtk_subjects_list;
 	my $mail_ids = $self->mail_ids;
-	my @rows     = $clist->selection;
 
 	$clist->freeze;
 
-	@rows = sort { $b <=> $a } @rows;
-	my $selected = $rows[@rows-1];
+	@{$rows} = sort { $b <=> $a } @{$rows};
+	my $selected = $rows->[@{$rows}-1];
 
-	foreach my $row ( @rows ) {
+	foreach my $row ( @{$rows} ) {
 		splice (@{$mail_ids}, $row, 1);
 		$clist->remove ( $row );
 	}
@@ -442,9 +462,11 @@ sub cb_select_mail {
 	# determine selected mail id
 	my $mail_id = $self->mail_ids->[$row];
 	
+	$self->debug ("column=$column mail_id=$mail_id selected_id=".$self->selected_mail_id);
+	
 	# nothing todo if this mail is already selected
-	# (and we have click on the "Status" column)
-	return 1 if $self->selected_mail_id == $mail_id and $column != 0;
+	# (and we don't have a double click)
+	return 1 if $self->selected_mail_id == $mail_id and $event->{type} ne '2button_press';
 
 	if ( $column == 0 ) {
 		# status click, only changes status of mail
@@ -452,15 +474,30 @@ sub cb_select_mail {
 		return 1;
 	}
 
-	$self->selected_mail_id ( $mail_id );
+	if ( $self->selected_mail_id != $mail_id ) {
+		$self->selected_mail_id ( $mail_id );
 
-	$self->folder_object->selected_mail_id ( $mail_id );
-	$self->folder_object->save;
-	$self->comp('mail')->show ( mail_id => $mail_id );
-	$self->comp('folders')->update_folder_item;
+		$self->debug ("mail_id=$mail_id selected_id=".$self->selected_mail_id);
 
-	$self->show_mail_status ( row => $row, status => 'R' );
+		$self->folder_object->selected_mail_id ( $mail_id );
+		$self->folder_object->save;
+		$self->comp('mail')->show ( mail_id => $mail_id );
+		$self->comp('folders')->update_folder_item;
 
+		$self->show_mail_status ( row => $row, status => 'R' );
+	}
+
+	if ( $event->{type} eq '2button_press' and
+	     ( $self->folder_object->id == $self->config('drafts_folder_id') or
+	       $self->folder_object->id == $self->config('templates_folder_id') ) ) {
+	     
+		my $compose = $self->comp('mail')->open_compose_window;
+		$compose->delete_mail_after_send ($self->comp('mail')->mail)
+			if $self->folder_object->id == $self->config('drafts_folder_id');
+	
+		return 1;
+	}
+	
 	1;
 }
 
@@ -594,6 +631,8 @@ sub move_selected_mails {
 	);
 
 	$self->remove_selected;
+	
+	1;
 }
 
 1;

@@ -10,6 +10,9 @@ Known bugs:
 
 This is my actual TODO list:
 ----------------------------
+- attachment file selecter:
+  - memorize selected folder per session
+  - add a button to change to the default directory
 - empty trash
 - mark a selection of mails as read
 - edit configuration parameters
@@ -17,15 +20,12 @@ This is my actual TODO list:
 - pop3 error window
 - smtp error window
 - when selecting last selected message in a folder, don't
-  set status on read
+  change its status to read
 - prevent opening several instance of the same window, if
   this makes no sense (e.g. account window)
 - address book
-- date with timezone? +0200
-- attachment file selecter:
-  - memorize selected folder per session
-  - add a button to change to the default directory
 - compose close: ask, if mail should be moved to Drafts
 - make browser application configurable
 - check RFC:
   - which Charset should be used when replying mail?
+- use 8 chars for tabs

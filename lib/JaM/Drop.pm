@@ -233,20 +233,20 @@ sub apply_filter {
 	my  ($entity, $subject, $from) =
 	@par{'entity','subject','from'};
 	
-	my $head = $entity->head;
-
-	my $to = $head->get ('to');
-	my $cc = $head->get ('cc');
-	my $from = $head->get ('from');
+	my $jam_entity = JaM::Entity->new ($entity);
+	
+	my $to   = $jam_entity->joined_head ('to');
+	my $cc   = $jam_entity->joined_head ('cc');
+	my $from = $jam_entity->joined_head ('from');
 
 	my %h = (
 		tofromcc => "$to $from $cc",
-		tocc => "$to $cc",
-		to => $to,
-		from => $from,
-		cc => $cc,
-		subject => $subject,
-		entity => $entity
+		tocc     => "$to $cc",
+		to       => $to,
+		from     => $from,
+		cc       => $cc,
+		subject  => $subject,
+		entity   => $entity
 	);
 	my $sub = $self->filter_sub;
 	my ($action, $folder_id) = &$sub (\%h);

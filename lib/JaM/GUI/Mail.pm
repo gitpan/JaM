@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.13 2001/08/12 15:00:48 joern Exp $
+# $Id: Mail.pm,v 1.14 2001/08/17 20:08:19 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -325,6 +325,10 @@ sub print_child_entities {
 			}
 			
 			if ( $child_content_type eq "text/html" ) {
+				$self->put_inline_download_link (
+					entity => $child,
+					widget => $widget,
+				);
 				$self->put_mail_text (
 					widget => $widget,
 					data => "\nWARNING: FILTERED HTML MAIL!!!\n\n".

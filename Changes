@@ -1,4 +1,16 @@
-$Id: Changes,v 1.4 2001/08/16 21:23:01 joern Exp $
+$Id: Changes,v 1.5 2001/08/17 20:08:18 joern Exp $
+
+0.9.5 2001/08/17 joern
+	Bugfixes:
+	- oops, I missed it using a rfc822 compliant date for
+	  outgoing mails
+	- filters were only applied on the first value of
+	  multi value fields
+	- it was not possible to save html filtered mail
+	  attachments
+	- when replying to a mail with "reply all" all recipients
+	  were added to the "To" header field, instead of using
+	  'CC' for other recipients than the original sender.
 
 0.9.4 2001/08/16 joern
 	Bugfixes:

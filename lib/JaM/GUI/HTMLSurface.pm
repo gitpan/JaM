@@ -1,4 +1,4 @@
-# $Id: HTMLSurface.pm,v 1.8 2001/08/12 15:00:48 joern Exp $
+# $Id: HTMLSurface.pm,v 1.9 2001/08/17 20:08:19 joern Exp $
 
 package JaM::GUI::HTMLSurface;
 
@@ -207,9 +207,6 @@ sub cb_url_requested {
 		# internal image pool request
 		$widget->write ($handle, $self->image_pool->{$1}->{body}->as_string);
 		$widget->end ($handle,'ok');
-		open (DEBUG, ">/tmp/inline_image.debug");
-		print DEBUG $self->image_pool->{$1}->{body}->as_string;
-		close DEBUG;
 
 	} elsif ( open ($fh, $filename) ) {
 		# external file request

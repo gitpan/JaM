@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.13 2001/08/16 21:23:02 joern Exp $
+# $Id: Compose.pm,v 1.14 2001/08/17 20:08:18 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -13,6 +13,7 @@ use MIME::Entity;
 use MIME::Types;
 use Net::SMTP;
 use File::Basename;
+use POSIX;
 
 sub gtk_win		{ my $s = shift; $s->{gtk_win}
 		          = shift if @_; $s->{gtk_win}			}
@@ -28,6 +29,8 @@ sub gtk_to_vbox		{ my $s = shift; $s->{gtk_to_vbox}
 		          = shift if @_; $s->{gtk_to_vbox}		}
 sub gtk_to_entries	{ my $s = shift; $s->{gtk_to_entries}
 		          = shift if @_; $s->{gtk_to_entries}		}
+sub gtk_to_options	{ my $s = shift; $s->{gtk_to_options}
+		          = shift if @_; $s->{gtk_to_options}		}
 sub gtk_to_sw		{ my $s = shift; $s->{gtk_to_sw}
 		          = shift if @_; $s->{gtk_to_sw}		}
 sub gtk_attachment_list	{ my $s = shift; $s->{gtk_attachment_list}
@@ -112,6 +115,7 @@ sub create_notebook {
 	$self->gtk_to_vbox ( $to_vbox);
 	
 	$self->gtk_to_entries ([]);
+	$self->gtk_to_options ([]);
 	$self->to_header_choices ([]);
 	$self->add_recipient_widget;
 
@@ -197,6 +201,8 @@ sub add_recipient_widget {
 	$self->gtk_to_vbox->pack_start($to_hbox, 0, 1, 0);
 	
 	push @{$self->gtk_to_entries}, $to_entry;
+	push @{$self->gtk_to_options}, $to_options;
+
 	push @{$self->to_header_choices}, "To";
 	
 	return $to_entry;
@@ -396,7 +402,7 @@ sub cb_send_button {
 		%header,
 		From => $from,
 		Subject => $subject,
-		Date => scalar(localtime(time)),
+		Date => $self->get_rfc822_date,
 		Data => [ $text ],
 		Charset => 'iso-8859-1',
 		'X-Mailer' => $x_mailer,
@@ -457,6 +463,20 @@ sub cb_send_button {
 	return 1;
 }
 
+sub get_rfc822_date {
+	my $self = shift;
+
+	my ($oldlocale, $date);
+	my $now = time();
+
+	$oldlocale = POSIX::setlocale (LC_TIME); # save the old locale
+	POSIX::setlocale (LC_TIME, "en"); # set the locale to RFC822's
+	$date = POSIX::strftime ("%a, %e %b %Y %T %Z", localtime($now)); # generate the local time string
+	POSIX::setlocale (LC_TIME, $oldlocale); # revert the locale (not needed?)
+
+	return $date;
+}
+
 sub close {
 	my $self = shift;
 	$self->gtk_win->destroy;
@@ -511,7 +531,10 @@ sub insert_reply_message {
 		push @to_header, qw ( to cc );
 	}
 	
-	my $gtk_to_entries = $self->gtk_to_entries;
+	my $gtk_to_entries    = $self->gtk_to_entries;
+	my $gtk_to_options    = $self->gtk_to_options;
+	my $to_header_choices = $self->to_header_choices;
+	
 	my @values;
 	my $value;
 	my $no_reply_regex =
@@ -531,6 +554,11 @@ sub insert_reply_message {
 				next if $value =~ /$no_reply_regex/;
 				next if $to{$value};
 				$gtk_to_entries->[@{$gtk_to_entries}-1]->set_text ($value);
+				$gtk_to_options->[@{$gtk_to_entries}-1]->set_history(
+					$field eq 'from' ? 0 : 1
+				);
+				$to_header_choices->[@{$gtk_to_entries}-1] =
+					$field eq 'from' ? 'To' : 'CC';
 				$self->add_recipient_widget;
 				$to{$value} = 1;
 			}

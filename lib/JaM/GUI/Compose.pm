@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.29 2001/11/02 13:23:57 joern Exp $
+# $Id: Compose.pm,v 1.30 2001/11/02 14:56:44 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -545,7 +545,7 @@ sub cb_send_button {
 
 	JaM::Func->wrap_mail_text (
 		text_sref   => \$text,
-		wrap_length => $self->config('wrap_line_length_show'),
+		wrap_length => $self->config('wrap_line_length_send'),
 	) if not $self->save_as_template and
 	     not $self->save_as_draft;
 	
@@ -749,14 +749,14 @@ sub insert_reply_message {
 		$mail_comp->put_mail_text (
 			widget => $mail_as_text,
 			data   => $mail->body->as_string,
-			wrap_length => $self->config('wrap_line_length_send')-2,
+			wrap_length => $self->config('wrap_line_length_send'),
 		);
 	}
 	$mail_comp->print_child_entities (
 		first_time => 1,
 		widget => $mail_as_text,
 		entity => $mail,
-		wrap_length => $self->config('wrap_line_length_send')-2,
+		wrap_length => $self->config('wrap_line_length_send'),
 	);
 	
 	my $text = $self->gtk_text;

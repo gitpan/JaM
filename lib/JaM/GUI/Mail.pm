@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.23 2001/11/02 14:18:07 joern Exp $
+# $Id: Mail.pm,v 1.25 2001/11/06 21:40:56 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -111,11 +111,20 @@ sub show {
 
 	# print primary body, if given
 	if ( $mail->body ) {
-		$self->put_mail_text (
-			widget => $html,
-			data => $mail->body->as_string,
-			wrap_length => $self->config('wrap_line_length_show'),
-		);
+		if ( $mail->content_type eq 'text/html' ) {
+			$self->put_mail_text (
+				widget => $html,
+				data => "\nWARNING: FILTERED HTML MAIL!!!\n\n".
+				        $self->html_filter($mail->body->as_string),
+			 	wrap_length => $self->config('wrap_line_length_show'),
+			);
+		} else {
+			$self->put_mail_text (
+				widget => $html,
+				data => $mail->body->as_string,
+				wrap_length => $self->config('wrap_line_length_show'),
+			);
+		}
 	}
 
 	# print child entitities
@@ -347,7 +356,7 @@ sub print_child_entities {
 				);
 			}
 			
-			if ( $child_content_type eq "text/html" ) {
+			if ( $child_content_type =~ m!^text/html! ) {
 				$self->put_inline_download_link (
 					entity => $child,
 					widget => $widget,

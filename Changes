@@ -1,4 +1,15 @@
-$Id: Changes,v 1.27 2001/11/02 14:18:07 joern Exp $
+$Id: Changes,v 1.29 2001/11/06 21:34:52 joern Exp $
+
+1.0.8 2001/11/06 joern
+	Bugfix:
+	- non multipart HTML Mails, where the HTML message
+	  is contained in the main body of the mail, were displayed
+	  without filtering html tags.
+
+1.0.7 2001/11/02 joern
+	Bugfix:
+	- sent mail were wrapped with wrong length
+	- removed debugging output to STDERR
 
 1.0.6 2001/11/02 joern
 	Bugfix:

@@ -1,4 +1,4 @@
-# $Id: Func.pm,v 1.3 2001/11/02 14:18:07 joern Exp $
+# $Id: Func.pm,v 1.4 2001/11/02 14:56:43 joern Exp $
 
 package JaM::Func;
 
@@ -20,8 +20,6 @@ sub wrap_mail_text {
 	my $new_text = "";
 	my $line;
 	
-	print STDERR $$text_sref,"\n";
-
 	my $DEBUG = 0;
 	
 	my $add_newline = 0;

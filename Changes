@@ -1,4 +1,19 @@
-$Id: Changes,v 1.10 2001/08/19 18:03:02 joern Exp $
+$Id: Changes,v 1.11 2001/08/20 20:37:29 joern Exp $
+
+0.9.8 2001/08/20 joern
+	Bugfixes:
+	- suppress recipient domain expansion on emtpy fields
+	- forgot adding the patches/ directory to the distribution
+	- from address was added as cc when replying mails
+	- if config parameter "dont_reply_adresses" was empty,
+	  no recipients were added when replying mail
+
+	Features:
+	- suppress multiple window instances where it make sense:
+	  - database configuration
+	  - account configuration
+	  - parameter configuration
+	  - IO filter configuration
 
 0.9.7 2001/08/19 joern
 	Features:

@@ -1,11 +1,11 @@
-# $Id: Account.pm,v 1.3 2001/08/15 19:48:47 joern Exp $
+# $Id: Account.pm,v 1.4 2001/08/20 20:37:30 joern Exp $
 
 package JaM::GUI::Account;
 
-@ISA = qw ( JaM::GUI::Component );
+@ISA = qw ( JaM::GUI::Window );
 
 use strict;
-use JaM::GUI::Component;
+use JaM::GUI::Window;
 use JaM::Account;
 
 my $DEBUG = 1;
@@ -41,6 +41,8 @@ sub gtk_dialog		{ my $s = shift; $s->{gtk_dialog}
 
 sub account		{ my $s = shift; $s->{account}
 		          = shift if @_; $s->{account}		}
+
+sub single_instance_window { 1 }
 
 sub build {
 	my $self = shift; $self->trace_in;
@@ -97,6 +99,7 @@ sub build {
 	$self->account($account);
 	$self->gtk_entries ( \%entries );
 	$self->gtk_dialog ( $dialog );
+	$self->gtk_window_widget ( $dialog );
 
 	$self->show;
 

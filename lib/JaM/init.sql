@@ -136,7 +136,7 @@ insert into Config (name, description, value, visible, type)
 values ('attachment_source_dir', 'Default Attachment Source Dir', '/tmp', 1, 'dir');
 
 insert into Config (name, description, value, visible, type)
-values ('no_reply_addresses', 'Dont Reply To This Adresses', "[ 'joern@netcologne.de', 'joern@zyn.de', 'joern@dimedis.de' ]", 1, 'list');
+values ('no_reply_addresses', 'Dont Reply To This Adresses', "[]", 1, 'list');
 
 insert into Config (name, description, value, visible, type)
 values ('smtp_hello', 'SMTP Hello String', 'wizard.castle', 1, 'text');

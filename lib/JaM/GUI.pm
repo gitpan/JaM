@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.29 2001/08/19 18:03:03 joern Exp $
+# $Id: GUI.pm,v 1.30 2001/08/20 20:37:30 joern Exp $
 
 package JaM::GUI;
 
@@ -218,7 +218,7 @@ sub create_menubar {
 		  	my $filter = JaM::GUI::IO_Filter->new (
 				dbh => $self->dbh
 			);
-			$filter->build;
+			$filter->open_window;
 		  } },
                 { path        => '/Edit/Mail _Account',
 		  accelerator => '<control>M',
@@ -230,7 +230,7 @@ sub create_menubar {
 		  	my $db = JaM::GUI::Database->new (
 				dbh => $self->dbh
 			);
-			$db->build_configuration_window;
+			$db->open_window;
 		  } },
 
                 { path        => '/Edit/_User Configuration',
@@ -240,7 +240,7 @@ sub create_menubar {
 		  	my $conf = JaM::GUI::Config->new (
 				dbh => $self->dbh
 			);
-			$conf->build;
+			$conf->open_window;
 		  } },
 
                 { path        => '/_Message',
@@ -851,7 +851,7 @@ sub account_window {
 	my $account = JaM::GUI::Account->new (
 		dbh => $self->dbh
 	);
-	$account->build;
+	$account->open_window;
 	
 	1;
 }

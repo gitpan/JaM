@@ -1,3 +1,5 @@
+$Id: TODO,v 1.20 2001/08/20 20:37:46 joern Exp $
+
 Known bugs:
 -----------
 - no word encoding on mail headers for outgoing mail
@@ -7,10 +9,12 @@ Known bugs:
   folder context popup. otherwise there are inconsistencies
   e.g. in a opened io filter window.
 - if you move all mails away from a folder, its statistic is
-  not updated correctly in the folder treeview
+  not updated correctly in the folder treeview (press "mark
+  all read" as a workaround)
 
 This is my actual TODO list:
 ----------------------------
+- parse mailto links
 - address book
 - mark a selection of mails as read
 - input filter: delete operation
@@ -18,10 +22,9 @@ This is my actual TODO list:
 - smtp error window
 - when selecting last selected message in a folder, don't
   change its status to read
-- prevent opening several instance of the same window, if
-  this makes no sense (e.g. account window)
 - make browser application configurable
 - check RFC:
-  - which Charset should be used when replying mail?
+  - which charset should be used when replying mail?
 - use 8 chars for tabs
 - make user configuration dialog look nice
+- set focus to the subjects list after clicking on a folder

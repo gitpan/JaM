@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.17 2001/08/19 15:32:39 joern Exp $
+# $Id: Compose.pm,v 1.18 2001/08/20 20:37:30 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -247,7 +247,10 @@ sub cb_to_entry_key_press {
 	
 	if ( $event->{keyval} == 65289 or $event->{keyval} == 65293 ) {
 		my $text = $widget->get_text;
-		if ( $text !~ /\@/ and $self->config('default_recipient_domain') ) {
+		$text =~ s/^\s+//;
+		$text =~ s/\s+$//;
+		if ( $text !~ /\@/ and $text ne '' and
+		     $self->config('default_recipient_domain') ) {
 			$text .= '@'.$self->config('default_recipient_domain');
 			$widget->set_text($text);
 		}
@@ -654,14 +657,14 @@ sub insert_reply_message {
 			my @addresses = Mail::Address->parse ($value);
 			foreach my $adr ( @addresses ) {
 				$value = $adr->address;
-				next if $value =~ /$no_reply_regex/;
+				next if $no_reply_regex ne "()" and $value =~ /$no_reply_regex/;
 				next if $to{$value};
 				$gtk_to_entries->[@{$gtk_to_entries}-1]->set_text ($value);
 				$gtk_to_options->[@{$gtk_to_entries}-1]->set_history(
-					$field eq 'from' or $field eq 'reply-to' ? 0 : 1
+					($field eq 'from' or $field eq 'reply-to') ? 0 : 1
 				);
 				$to_header_choices->[@{$gtk_to_entries}-1] =
-					$field eq 'from' or $field eq 'reply-to' ? 'To' : 'CC';
+					($field eq 'from' or $field eq 'reply-to') ? 'To' : 'CC';
 				$self->add_recipient_widget;
 				$to{$value} = 1;
 			}

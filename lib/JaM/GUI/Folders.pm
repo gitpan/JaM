@@ -1,4 +1,4 @@
-# $Id: Folders.pm,v 1.18 2001/08/19 09:56:45 joern Exp $
+# $Id: Folders.pm,v 1.19 2001/08/20 20:37:30 joern Exp $
 
 package JaM::GUI::Folders;
 
@@ -921,7 +921,7 @@ sub cb_add_input_filter {
 	  	$filter = JaM::GUI::IO_Filter->new (
 			dbh => $self->dbh,
 		);
-		$filter->build;
+		$filter->open_window;
 	}
 	
 	$filter->add_new_filter (

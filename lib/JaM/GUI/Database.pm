@@ -1,11 +1,11 @@
-# $Id: Database.pm,v 1.2 2001/08/11 14:54:23 joern Exp $
+# $Id: Database.pm,v 1.3 2001/08/20 20:37:30 joern Exp $
 
 package JaM::GUI::Database;
 
-@ISA = qw ( JaM::GUI::Component );
+@ISA = qw ( JaM::GUI::Window );
 
 use strict;
-use JaM::GUI::Component;
+use JaM::GUI::Window;
 use JaM::Database;
 
 my $DEBUG = 1;
@@ -43,7 +43,9 @@ sub in_initialization	{ my $s = shift; $s->{in_initialization}
 sub update_successful	{ my $s = shift; $s->{update_successful}
 		          = shift if @_; $s->{update_successful}	}
 
-sub build_configuration_window {
+sub single_instance_window { 1 }
+
+sub build {
 	my $self = shift; $self->trace_in;
 
 	my $dialog = Gtk::Dialog->new;
@@ -157,6 +159,7 @@ sub build_configuration_window {
 	$self->gtk_entries ( \%entries );
 	$self->gtk_dialog ( $dialog );
 	$self->gtk_status ( $text );
+	$self->gtk_window_widget ( $dialog );
 
 	$self->show;
 

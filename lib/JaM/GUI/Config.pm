@@ -1,11 +1,11 @@
-# $Id: Config.pm,v 1.1 2001/08/19 18:03:26 joern Exp $
+# $Id: Config.pm,v 1.2 2001/08/20 20:37:30 joern Exp $
 
 package JaM::GUI::Config;
 
-@ISA = qw ( JaM::GUI::Component );
+@ISA = qw ( JaM::GUI::Window );
 
 use strict;
-use JaM::GUI::Component;
+use JaM::GUI::Window;
 use JaM::Filter::IO;
 use File::Basename;
 
@@ -30,6 +30,8 @@ sub selected_parameter	{ my $s = shift; $s->{selected_parameter}
 sub selected_parameter_value	{ my $s = shift; $s->{selected_parameter_value}
 		         	  = shift if @_; $s->{selected_parameter_value}	}
 
+sub single_instance_window { 1 }
+
 sub DESTROY {
 	my $self = shift; $self->trace_in;
 	$self->comp('input_filter', undef);
@@ -45,7 +47,6 @@ sub build {
 	$win->set_default_size (450, 400);
 	$win->realize;
 	$win->show;
-	$win->signal_connect ( "destroy", sub { $self->comp('config', undef) } );
 
 	my $vpane = new Gtk::VPaned();
 	$vpane->show();
@@ -109,6 +110,7 @@ sub build {
 	$self->gtk_win ($win);
 	$self->gtk_parameter_list  ($list);
 	$self->gtk_parameter_frame ($filter_frame);
+	$self->gtk_window_widget ($win);
 
 	$self->parameter_names([]);
 

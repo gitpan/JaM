@@ -1,11 +1,11 @@
-# $Id: IO_Filter.pm,v 1.1 2001/08/15 19:48:47 joern Exp $
+# $Id: IO_Filter.pm,v 1.2 2001/08/20 20:37:31 joern Exp $
 
 package JaM::GUI::IO_Filter;
 
-@ISA = qw ( JaM::GUI::Component );
+@ISA = qw ( JaM::GUI::Window );
 
 use strict;
-use JaM::GUI::Component;
+use JaM::GUI::Window;
 use JaM::Filter::IO;
 
 my $DEBUG = 1;
@@ -38,10 +38,7 @@ sub selected_filter	{ my $s = shift; $s->{selected_filter}
 sub filter_type		{ my $s = shift; $s->{filter_type}
 		          = shift if @_; $s->{filter_type}	}
 
-sub DESTROY {
-	my $self = shift; $self->trace_in;
-	$self->comp('input_filter', undef);
-}
+sub single_instance_window { 1 }
 
 sub build {
 	my $self = shift; $self->trace_in;
@@ -53,7 +50,6 @@ sub build {
 	$win->set_default_size (530, 500);
 	$win->realize;
 	$win->show;
-	$win->signal_connect ( "destroy", sub { $self->comp('input_filter', undef) } );
 
 	my $vpane = new Gtk::VPaned();
 	$vpane->show();
@@ -169,7 +165,7 @@ sub build {
 
 	$self->show_filters ( type => 'input' );
 
-	$self->comp('input_filter' => $self);
+	$self->gtk_window_widget ($win);
 
 	1;
 }

@@ -1,4 +1,4 @@
-# $Id: Subjects.pm,v 1.16 2001/08/19 09:56:46 joern Exp $
+# $Id: Subjects.pm,v 1.17 2001/08/20 20:37:31 joern Exp $
 
 package JaM::GUI::Subjects;
 
@@ -202,7 +202,7 @@ sub cb_add_input_filter {
 	  	$filter = JaM::GUI::IO_Filter->new (
 			dbh => $self->dbh,
 		);
-		$filter->build;
+		$filter->open_window;
 	}
 	
 	my $mail = JaM::Mail->load ( dbh => $self->dbh, mail_id => $self->popup_mail_id );

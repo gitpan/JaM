@@ -1,4 +1,4 @@
-# $Id: Folder.pm,v 1.9 2001/08/14 21:12:50 joern Exp $
+# $Id: Folder.pm,v 1.10 2001/08/16 21:23:01 joern Exp $
 
 package JaM::Folder;
 
@@ -14,8 +14,6 @@ sub folder_id		{ my $s = shift; $s->{id}
 		          = shift if @_; $s->{id}		}
 sub name		{ my $s = shift; $s->{name}
 		          = shift if @_; $s->{name}		}
-sub parent_id		{ my $s = shift; $s->{parent_id}
-		          = shift if @_; $s->{parent_id}	}
 sub sibling_id		{ my $s = shift; $s->{sibling_id}
 		          = shift if @_; $s->{sibling_id}	}
 sub leaf		{ my $s = shift; $s->{leaf}
@@ -49,7 +47,7 @@ sub init {
 	my %par = @_;
 	my ($dbh) = @par{'dbh'};
 	return 1 if $FOLDERS;
-	$FOLDERS = $type->query ( dbh => $dbh );
+	$FOLDERS = $type->query ( dbh => $dbh, init => 1 );
 	$DBH = $dbh;
 	1;
 }
@@ -86,8 +84,10 @@ sub all_folders {
 sub query {
 	my $type = shift;
 	my %par = @_;
-	my  ($dbh, $where, $params, $no_cache) =
-	@par{'dbh','where','params','no_cache'};
+	my  ($dbh, $where, $params, $no_cache, $init) =
+	@par{'dbh','where','params','no_cache','init'};
+
+	confess "not initialized" if not $FOLDERS and not $init;
 
 	$dbh ||= $DBH;
 	$where = "where $where" if $where;
@@ -196,6 +196,18 @@ sub save {
 	my $self = shift;
 	
 	confess "not initialized" unless $FOLDERS;
+
+	my $parent_id = $self->parent_id;
+	my $path;
+	if ( $parent_id ) {
+		$path = (ref $self)->by_id($parent_id)->path."/";
+	} else {
+		$path = "/";
+	}
+
+	$path .= $self->name;
+	$path =~ s!/+!/!g;
+	$self->path($path);
 
 	$self->dbh->do (
 		"update Folder set
@@ -310,6 +322,38 @@ sub sibling_of_id {
 	);
 	
 	return $id;
+}
+
+sub childs {
+	my $self = shift;
+	
+	return (ref $self)->query (
+		where => 'parent_id=?',
+		params => [ $self->id ]
+	);
+}
+
+sub parent_id {
+	my $self = shift;
+	my ($value) = @_;
+	return $self->{parent_id} if not @_;
+
+	# this computes a the new path
+	$self->{parent_id} = $value;
+	$self->save;
+
+	# get direct childs
+	my $childs = $self->childs;
+	
+	# compute new path of the childs
+	foreach my $child ( values %{$childs} ) {
+		# save computes the correct path
+		$child->save;
+		# do the same for the childs of this child
+		$child->parent_id($self->id);
+	}
+	
+	return $value;
 }
 
 1;

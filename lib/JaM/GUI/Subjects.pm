@@ -1,4 +1,4 @@
-# $Id: Subjects.pm,v 1.13 2001/08/14 21:12:50 joern Exp $
+# $Id: Subjects.pm,v 1.14 2001/08/16 21:23:03 joern Exp $
 
 package JaM::GUI::Subjects;
 
@@ -32,6 +32,12 @@ sub gtk_subjects_list	{ my $s = shift; $s->{gtk_subjects_list}
 # get/set currently first selected mail id
 sub selected_mail_id	{ my $s = shift; $s->{selected_mail_id}
 		          = shift if @_; $s->{selected_mail_id}		}
+
+sub gtk_folder_menu	{ my $s = shift; $s->{gtk_folder_menu}
+		          = shift if @_; $s->{gtk_folder_menu}		}
+
+sub gtk_folder_menu_item{ my $s = shift; $s->{gtk_folder_menu_item}
+		          = shift if @_; $s->{gtk_folder_menu_item}	}
 
 # return lref of selected mail ids
 sub selected_mail_ids {
@@ -90,6 +96,24 @@ sub build {
 	my $popup = $list->{popup} = Gtk::Menu->new;
 	my $item;
 
+#	$item = Gtk::MenuItem->new ("Mark selected mail(s) as read...");
+#	$popup->append($item);
+#	$item->signal_connect ("activate", sub { $self->cb_mark_mail_as_read ( @_ ) } );
+#	$item->show;
+
+	my $folder_menu_item = Gtk::MenuItem->new ("Move selected mail(s) to folder...");
+	$popup->append($folder_menu_item);
+	$folder_menu_item->show;
+
+	my $folder_menu = $self->comp('folders')->build_menu_of_folders (
+		callback => sub { $self->move_selected_mails ( folder_id => $_[0] ); }
+	);
+	$folder_menu_item->set_submenu($folder_menu);
+
+	$item = Gtk::MenuItem->new;
+	$popup->append($item);
+	$item->show;
+
 	$item = Gtk::MenuItem->new ("Add Input Filter...");
 	$popup->append($item);
 	$item->signal_connect ("activate", sub { $self->cb_add_input_filter ( @_ ) } );
@@ -134,6 +158,8 @@ sub build {
 
 	$self->gtk_subjects ($subjects);
 	$self->gtk_subjects_list ($list);
+	$self->gtk_folder_menu ($folder_menu);
+	$self->gtk_folder_menu_item ($folder_menu_item);
 
 	$self->widget ($subjects);
 
@@ -153,6 +179,12 @@ sub cb_click_subjects {
 	}
 
 	if ( $event->{button} == 3 and $widget->{'popup'} ) {
+		my $folder_menu_item = $self->gtk_folder_menu_item;
+		$folder_menu_item->remove_submenu;
+		my $folder_menu = $self->comp('folders')->build_menu_of_folders (
+			callback => sub { $self->move_selected_mails ( folder_id => $_[0] ); }
+		);
+		$folder_menu_item->set_submenu($folder_menu);
 		$widget->{'popup'}->popup(undef,undef,$event->{button},1);
 	}
 
@@ -166,8 +198,8 @@ sub cb_add_input_filter {
 	eval { $filter = $self->comp('input_filter') };
 	
 	if ( not $filter ) {
-	  	require JaM::GUI::InputFilter;
-	  	$filter = JaM::GUI::InputFilter->new (
+	  	require JaM::GUI::IO_Filter;
+	  	$filter = JaM::GUI::IO_Filter->new (
 			dbh => $self->dbh,
 		);
 		$filter->build;
@@ -543,6 +575,25 @@ sub quick_search {
 	return $dialog;
 }
 
+sub move_selected_mails {
+	my $self = shift;
+	my %par = @_;
+	my ($folder_id) = @par{'folder_id'};
 
+	my $selected_mail_ids = $self->selected_mail_ids;
+	return if not @{$selected_mail_ids};
+
+	return 1 if $self->comp('folders')->selected_folder_object->id ==
+		    $folder_id;
+
+	my $folder_object = JaM::Folder->by_id ($folder_id);
+
+	$self->comp('mail')->move_to_folder (
+		folder_object => $folder_object,
+		mail_ids      => $self->comp('subjects')->selected_mail_ids
+	);
+
+	$self->remove_selected;
+}
 
 1;

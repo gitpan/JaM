@@ -1,4 +1,4 @@
-# $Id: Database.pm,v 1.2 2001/08/12 13:35:29 joern Exp $
+# $Id: Database.pm,v 1.3 2001/08/16 21:23:01 joern Exp $
 
 package JaM::Database;
 
@@ -31,7 +31,8 @@ sub load {
 	my $type = shift;
 
 	# read connection configuration from ~/.JaMrc
-	my $filename = "$ENV{HOME}/.JaMrc";
+	my $filename = $ENV{JAMRC};
+	$filename ||= "$ENV{HOME}/.JaMrc";
 
 	# if filename does not exist, return default object
 	if ( not -f $filename ) {

@@ -253,3 +253,12 @@ values (6, 'Templates', 1, 1, '/Templates', 99999);
 
 # each section is enclosed with
 # #<versionNUMBER># ... #</versionNUMBER>#
+
+#<version2>#
+
+update Folder set name='', path='/' where id=1;
+
+insert into Config (name, description, value, visible, type)
+values ('default_recipient_domain', 'Default Recipient Domain', 'zyn.de', 1, 'text');
+
+#</version2>#

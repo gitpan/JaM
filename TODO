@@ -1,16 +1,18 @@
 Known bugs:
 -----------
-- internal path field of folders is not updated correctly
-  on folder movement. not critical, because this field
-  is only used in the IO filter dialog for information
-  only.
-
+- the "color parents gray" algorithm has a bug: siblings are
+  colored too, sometimes.
+- on folder change (rename, move, delete etc.) recalculate
+  folder context popup. otherwise there are inconsistencies
+  e.g. in the io filter window.
+- if you move all mails away from a folder, its statistic is
+  not updated correctly in the folder treeview
 
 This is my actual TODO list:
 ----------------------------
-- edit configuration parameters
-- move mail to folder
+- empty trash
 - mark a selection of mails as read
+- edit configuration parameters
 - input filter: delete operation
 - pop3 error window
 - smtp error window
@@ -18,6 +20,12 @@ This is my actual TODO list:
   set status on read
 - prevent opening several instance of the same window, if
   this makes no sense (e.g. account window)
-- configure a default domain name for recipients
-- empty trash
 - address book
+- date with timezone? +0200
+- attachment file selecter:
+  - memorize selected folder per session
+  - add a button to change to the default directory
+- compose close: ask, if mail should be moved to Drafts
+- make browser application configurable
+- check RFC:
+  - which Charset should be used when replying mail?

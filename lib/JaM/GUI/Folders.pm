@@ -1,4 +1,4 @@
-# $Id: Folders.pm,v 1.15 2001/08/14 21:12:50 joern Exp $
+# $Id: Folders.pm,v 1.16 2001/08/16 21:23:02 joern Exp $
 
 package JaM::GUI::Folders;
 
@@ -201,7 +201,7 @@ sub build {
 
 	$self->add_tree (
 		tree      => $root_tree,
-		parent_id => 0
+		parent_id => 1
 	);
 
 	$folders->show;
@@ -257,6 +257,7 @@ sub add_tree {
 	# build sibling hash
 	my %sibling;
 	for ( keys %{$folders_href} ) {
+		$folders_href->{$_}->save; # recalculate path
 		$sibling{$folders_href->{$_}->sibling_id} = $folders_href->{$_};
 	}
 
@@ -286,6 +287,8 @@ sub insert_folder_item {
 	my %par = @_;
 	my  ($folder_object, $sibling_item) =
 	@par{'folder_object','sibling_item'};
+	
+	$self->dump($folder_object);
 	
 	my $folder_items = $self->gtk_folder_items;
 	my $tree = $self->gtk_folders_tree;
@@ -350,11 +353,10 @@ sub cb_rename_folder {
 		value => $name,
 		cb => sub {
 			my ($text) = @_;
-			$self->rename_folder (
+			return $self->rename_folder (
 				folder_object => $folder_object,
 				name => $text->get_text,
 			);
-			$dialog->destroy;
 		}
 	);
 
@@ -369,7 +371,6 @@ sub folder_dialog {
 	my $dialog = Gtk::Dialog->new;
 	$dialog->border_width(10);
 	$dialog->set_position('mouse');
-	$dialog->set_modal ( 1 );
 	$dialog->set_title ($title);
 
 	my $label = Gtk::Label->new ($label_text);
@@ -384,8 +385,7 @@ sub folder_dialog {
 	my $ok = new Gtk::Button( "Ok" );
 	$dialog->action_area->pack_start( $ok, 1, 1, 0 );
 	$ok->signal_connect( "clicked", sub {
-		&$cb($text);
-		$dialog->destroy;
+		&$cb($text) && $dialog->destroy;
 	} );
 	$ok->show();
 
@@ -406,7 +406,19 @@ sub rename_folder {
 	
 	$self->debug ("folder_id=".$folder_object->id.", name=$name");
 	
-	return 1 if not $name;
+	return if not $name;
+
+	my $childs_with_same_name = JaM::Folder->query (
+		where => "parent_id = ? and name=?",
+		params => [ $folder_object->parent_id, $name ]
+	);
+	
+	if ( keys %{$childs_with_same_name} ) {
+		$self->message_window (
+			message => "A folder with this name already exists."
+		);
+		return;
+	}
 	
 	$folder_object->name($name);
 	$folder_object->save;
@@ -428,11 +440,10 @@ sub cb_create_folder {
 		value => "",
 		cb => sub {
 			my ($text) = @_;
-			$self->create_folder (
+			return $self->create_folder (
 				parent_folder_object => $folder_object,
 				name => $text->get_text,
 			);
-			$dialog->destroy;
 		}
 	);
 
@@ -531,6 +542,7 @@ sub update_folder_stati {
 
 	my ($folder_id, $folder, $status, $style);
 	while ( ($folder_id, $folder) = each %{$all_folders} ) {
+		next if $folder_id == 1;
 		$status = $folder->status;
 		if ( $folder_items->{$folder_id}->{status} ne $status ) {
 			$style = $self->gtk_read_style;
@@ -555,6 +567,19 @@ sub create_folder {
 	my $parent_id = $parent_folder_object->id;
 	
 	$self->debug ("parent_id=$parent_id name=$name");
+	
+	# check if name clashes
+	my $childs_with_same_name = JaM::Folder->query (
+		where => "parent_id = ? and name=?",
+		params => [ $parent_folder_object->id, $name ]
+	);
+	
+	if ( keys %{$childs_with_same_name} ) {
+		$self->message_window (
+			message => "A folder with this name already exists."
+		);
+		return;
+	}
 	
 	my $folder_items = $self->gtk_folder_items;
 	my $folders_tree = $self->gtk_folders_tree;
@@ -609,6 +634,8 @@ sub cb_tree_move {
 		parent_object => $parent_object,
 		sibling_object => $sibling_object,
 	);
+	
+	1;
 }
 
 sub move_tree {
@@ -617,6 +644,21 @@ sub move_tree {
 
 	my  ($moved_object, $parent_object, $sibling_object) =
 	@par{'moved_object','parent_object','sibling_object'};
+	
+	# rename folder if name clashes with siblings in the new folder
+	while (1) {
+		my $childs_with_same_name = JaM::Folder->query (
+			where => "parent_id = ? and name=?",
+			params => [ $parent_object->id, $moved_object->name ]
+		);
+		if  ( keys %{$childs_with_same_name} ) {
+			my $name = $moved_object->name;
+			$name =~ s/(\d+)?$/$1+1/e;
+			$moved_object->name($name);			
+		} else {
+			last;
+		}
+	}
 	
 	my $folder_items  = $self->gtk_folder_items;
 	
@@ -685,17 +727,14 @@ sub move_tree {
 		$moved_object->sibling_id(99999);
 	}
 
-	# set parent_id
+	# set parent_id (this computes the new path also)
 	$moved_object->parent_id ($parent_object->id);
 	
-	# set new path
-	my $path = $parent_object->path;
-	$path =~ s!/[^/]+$!/!;
-	$path .= $moved_object->name;
-	$moved_object->path ($path);
-
 	# save
 	$moved_object->save;
+
+	# update item (may be it has been renamed)
+	$self->update_folder_item ( folder_object => $moved_object );
 
 	1;
 }
@@ -707,6 +746,25 @@ sub cb_delete_folder {
 	
 	my $trash_id = $self->config('trash_folder_id');
 	my $trash_object = JaM::Folder->by_id($trash_id);
+
+	# check if this *is* the trash folder itself
+	if ( $trash_id == $folder_object->id ) {
+		$self->message_window (
+			 message => "You can't trash trash."
+		);
+		return 1;
+	}
+	
+	# check if this folder is already in trash
+	my $trash_path = $trash_object->path;
+	my $path = $folder_object->path;
+
+	if ( $path =~ m!^$trash_path! ) {
+		$self->message_window (
+			message => "Folder is already in trash."
+		);
+		return 1;
+	}
 
 	# update database
 	$self->move_tree (
@@ -734,14 +792,14 @@ sub build_menu_of_folders {
 
 	my $root_folder = JaM::Folder->by_id(1);
 
-	my $submenu = $self->build_submenu (
-		parent => $root_folder,
+	my $menu = $self->build_submenu (
+		parent   => $root_folder,
 		callback => $callback,
 	);
 
-	my $menu = Gtk::Menu->new;
-	$menu->append($submenu);
-	$menu->show;
+#	my $menu = Gtk::Menu->new;
+#	$menu->append($submenu);
+#	$menu->show;
 	
 	return $menu;
 }
@@ -751,9 +809,7 @@ sub build_submenu {
 	my %par = @_;
 	my ($parent, $callback) = @par{'parent','callback'};
 	
-	my $item = Gtk::MenuItem->new ($parent->name);
-	$item->show;
-	$item->signal_connect ("activate", sub { &$callback($parent->id) } );
+	my $menu;
 	
 	if ( not $parent->leaf ) {
 		my $childs = JaM::Folder->query (
@@ -761,25 +817,35 @@ sub build_submenu {
 			params => [ $parent->id ]
 		);
 
-		my $menu = Gtk::Menu->new;
+		$menu = Gtk::Menu->new;
 		$menu->show;
-		$item->set_submenu($menu);
 
-		my $drop_here = Gtk::MenuItem->new ("[Drop here]");
-		$drop_here->signal_connect ("activate", sub { &$callback($parent->id) } );
-		$drop_here->show;
-		$menu->append($drop_here);
+		if ( $parent->id != 1 ) {
+			my $drop_here = Gtk::MenuItem->new ("[Drop here]");
+			$drop_here->signal_connect ("activate", sub { &$callback($parent->id) } );
+			$drop_here->show;
+			$menu->append($drop_here);
+		}
 
 		foreach my $folder ( sort { $a->path cmp $b->path} values %{$childs} ) {
-			my $item = $self->build_submenu (
+			my $item = Gtk::MenuItem->new ($folder->name);
+			$item->show;
+			if ( $folder->leaf ) {
+				$item->signal_connect ("activate", sub { &$callback($folder->id) } );
+			}
+			$menu->append($item);
+	
+			my $submenu = $self->build_submenu (
 				parent => $folder,
 				callback => $callback,
 			);
-			$menu->append($item);
+			
+			$item->set_submenu($submenu) if $submenu;
 		}
+
 	}
 	
-	return $item;
+	return $menu;
 }
 
 sub cb_add_input_filter {
@@ -789,8 +855,8 @@ sub cb_add_input_filter {
 	eval { $filter = $self->comp('input_filter') };
 
 	if ( not $filter ) {
-	  	require JaM::GUI::InputFilter;
-	  	$filter = JaM::GUI::InputFilter->new (
+	  	require JaM::GUI::IO_Filter;
+	  	$filter = JaM::GUI::IO_Filter->new (
 			dbh => $self->dbh,
 		);
 		$filter->build;

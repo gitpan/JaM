@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.11 2001/08/15 19:48:47 joern Exp $
+# $Id: Compose.pm,v 1.13 2001/08/16 21:23:02 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -211,6 +211,14 @@ sub cb_to_entry_key_press {
 	my $self = shift;
 	my ($widget, $event, $nr) = @_;
 	
+	if ( $event->{keyval} == 65289 or $event->{keyval} == 65293 ) {
+		my $text = $widget->get_text;
+		if ( $text !~ /\@/ ) {
+			$text .= '@'.$self->config('default_recipient_domain');
+			$widget->set_text($text);
+		}
+	}
+	
 	if ( $event->{keyval} == 65289 ) {
 		$self->gtk_subject->grab_focus;
 
@@ -382,7 +390,7 @@ sub cb_send_button {
 	
 	my $x_mailer =
 		$self->config('x_mailer').", Version ".
-		$JaM::GUI::VERSION;
+		$JaM::VERSION;
 	
 	my $mail = MIME::Entity->build (
 		%header,
@@ -390,6 +398,7 @@ sub cb_send_button {
 		Subject => $subject,
 		Date => scalar(localtime(time)),
 		Data => [ $text ],
+		Charset => 'iso-8859-1',
 		'X-Mailer' => $x_mailer,
 	);
 
@@ -422,7 +431,7 @@ sub cb_send_button {
 	}
 
 	my $dropper = JaM::Drop->new (
-		dbh => $self->dbh,
+		dbh  => $self->dbh,
 		type => 'output',
 	);
 

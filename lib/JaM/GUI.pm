@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.24 2001/08/15 19:48:47 joern Exp $
+# $Id: GUI.pm,v 1.25 2001/08/16 21:23:01 joern Exp $
 
 package JaM::GUI;
 
@@ -89,19 +89,21 @@ sub build {
 	my $menubar  = $self->create_menubar;
 	my $toolbar  = $self->create_toolbar;
 
+	# store component
+	$self->comp ( gui => $self );
+
 	# create objects for our main GUI components
 	my $folders =
 		JaM::GUI::Folders->new ( dbh => $dbh, gtk_win => $win )->build;
+	$self->comp ( folders  => $folders );
+
 	my $subjects =
 		JaM::GUI::Subjects->new ( dbh => $dbh, gtk_win => $win )->build;
+	$self->comp ( subjects => $subjects );
+
 	my $mail =
 		JaM::GUI::Mail->new ( dbh => $dbh, gtk_win => $win )->build;
-
-	# store components
-	$self->comp ( subjects => $subjects );
-	$self->comp ( folders  => $folders );
 	$self->comp ( mail     => $mail );
-	$self->comp ( gui      => $self );
 
 	# arrange components inside the application window
 	my $vpane = new Gtk::VPaned();
@@ -137,6 +139,8 @@ sub build {
 	$win->show;
 	
 	$self->widget($win);
+
+	$folders->gtk_folders_tree->select_row(0,0);
 
 	return;
 }
@@ -720,20 +724,9 @@ sub cb_delete_button {
 
 	my $trash_folder_id = $self->config('trash_folder_id');
 
-	my $selected_mail_ids = $self->comp('subjects')->selected_mail_ids;
-	return if not @{$selected_mail_ids};
-
-	return 1 if $self->comp('folders')->selected_folder_object->id ==
-		    $trash_folder_id;
-
-	my $trash_folder_object = JaM::Folder->by_id ($trash_folder_id);
-
-	$self->comp('mail')->move_to_folder (
-		folder_object => $trash_folder_object,
-		mail_ids      => $self->comp('subjects')->selected_mail_ids
+	$self->comp('subjects')->move_selected_mails (
+		folder_id => $trash_folder_id
 	);
-
-	$self->comp('subjects')->remove_selected;
 
 	1;
 }

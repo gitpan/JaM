@@ -26,6 +26,8 @@ sub new {
 	my $wd = MIME::WordDecoder::ISO_8859->new('1');
 	$wd->handler ('*', "KEEP");
 	
+	$type ||= 'input';
+	
 	my $self = bless {
 		dbh => $dbh,
 		fh => $fh,
@@ -250,7 +252,7 @@ sub apply_filter {
 	my ($action, $folder_id) = &$sub (\%h);
 	
 	if ( not $folder_id ) {
-		$folder_id = 2 if $self->type eq 'input';
+		$folder_id = 2;
 		$folder_id = 3 if $self->type eq 'output';
 	}
 	

@@ -1,4 +1,4 @@
-# $Id: IO.pm,v 1.1 2001/08/15 19:48:47 joern Exp $
+# $Id: IO.pm,v 1.2 2001/08/16 21:23:02 joern Exp $
 
 package JaM::Filter::IO;
 
@@ -415,10 +415,10 @@ package JaM::Filter::IO::Apply;
 use strict;
 use Carp;
 
-my %FILTER_OBJECTS;
-my %FILTER_CHANGED;
-my %FILTER_CODE;
-my $FILTER_CODE;
+my %FILTER_OBJECTS;		# Hash of IO::Filter objects
+my %FILTER_CHANGED;		# Hash of change timestamps of IO::Filter objects
+my %FILTER_EACH_CODE;		# code of each IO::Filter object
+my %FILTER_COMBINED_CODE;	# combined code for keys 'input' and 'output'
 
 sub init {
 	my $class = shift;
@@ -428,7 +428,7 @@ sub init {
 	$type ||= 'input';
 	
 	my $filters = JaM::Filter::IO->list (
-		dbh => $dbh,
+		dbh  => $dbh,
 		type => $type,
 	);
 	
@@ -437,33 +437,33 @@ sub init {
 	my $loaded_filter;
 	my $changed = 0;
 	foreach my $filter ( @{$filters} ) {
-		if ( $FILTER_CHANGED{$filter->{id}} < $filter->{changed} ) {
+		if ( $FILTER_CHANGED{$type.$filter->{id}} < $filter->{changed} ) {
 			$changed = 1;
 
-			$loaded_filter = $FILTER_OBJECTS{$filter->{id}} =
+			$loaded_filter = $FILTER_OBJECTS{$type.$filter->{id}} =
 				JaM::Filter::IO->load (
-					dbh => $dbh,
+					dbh       => $dbh,
 					filter_id => $filter->{id}
 			);
 
-			$FILTER_CHANGED{$filter->{id}} =
+			$FILTER_CHANGED{$type.$filter->{id}} =
 				$loaded_filter->last_changed;
 
-			$FILTER_CODE{$filter->{id}} =
+			$FILTER_EACH_CODE{$type.$filter->{id}} =
 				$loaded_filter->code;
 		}
-		$code .= $FILTER_CODE{$filter->{id}}."\n";
+		$code .= $FILTER_EACH_CODE{$type.$filter->{id}}."\n";
 	}
 	
 	$code .= "}\n";
 
 	my $error;
-	my $sub = $FILTER_CODE;
+	my $sub = $FILTER_COMBINED_CODE{$type};
 	if ( not $sub or $changed ) {
 		$sub = eval $code;
 		$error = $@;
 	}
-	$FILTER_CODE = $sub;
+	$FILTER_COMBINED_CODE{$type} = $sub;
 
 	my $self = {
 		code  => $code,

@@ -1,14 +1,21 @@
-$Id: TODO,v 1.27 2001/09/15 06:35:18 joern Exp $
+$Id: TODO,v 1.28 2001/10/14 10:02:30 joern Exp $
 
 Known bugs:
 -----------
+- html filter
+	Subject:	Re: [gfx] Blaulicht
+	Date:	 	Mon 03.09.2001 13:35
+	To:	 	grafik@zyn.de
+
 - wenn in einem folder ungelesene mails sind, und in einem
   subfolder von diesem auch (z.B. Loggin / Postmaster), dann
   wird auch der parent folder auf unread gesetzt, wenn im child folder
   alles unread ist
+- html entities escapen
 
 This is my actual TODO list:
 ----------------------------
+- mail header: <td valign="top">
 - show mail path in advanced search result
 - mark a selection of mails as read
 - make browser application configurable

@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.26 2001/09/26 18:47:30 joern Exp $
+# $Id: Compose.pm,v 1.27 2001/10/14 10:02:30 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -545,7 +545,7 @@ sub cb_send_button {
 	$self->wrap_mail_text ( text_sref => \$text, length => 72 );
 	
 	my $x_mailer =
-		$self->config('x_mailer').", Version ".
+		$self->config('x_mailer')." v".
 		$JaM::VERSION;
 	
 	foreach my $add_head ( @{$self->additional_headers} ) {

@@ -1,4 +1,4 @@
-# $Id: Subjects.pm,v 1.18 2001/09/02 11:15:26 joern Exp $
+# $Id: Subjects.pm,v 1.19 2001/10/14 10:02:30 joern Exp $
 
 package JaM::GUI::Subjects;
 
@@ -346,13 +346,12 @@ sub show {
 
 	$self->mail_ids (undef);
 
-	my $item;
 	while ( ($id, $status, $subject, $sender, $date) = $sth->fetchrow_array ) {
 		push @mail_ids, $id;
 
 		$sender =~ s/<.*?>// if $sender !~ /^</;
 		$sender =~ s/"//g;
-		$item = $list->append(
+		$list->append(
 			$status, $subject, $sender,
 			$self->format_date (time => $date, nice => 1)
 		);

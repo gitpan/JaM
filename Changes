@@ -1,4 +1,25 @@
-$Id: Changes,v 1.20 2001/09/26 18:47:29 joern Exp $
+$Id: Changes,v 1.22 2001/10/14 10:17:10 joern Exp $
+
+1.0.3 2001/10/14 joern
+	Bugfixes:
+	- There seems to be a strange bug in MIME::Entity or
+	  Mail::Internet. The X-Mailer field of JaM is rather
+	  long, ok ;) That should be no problem, but the X-Mailer
+	  header field was folded strange. A folded line of
+	  whitspace was added. My interpretation of the RFC is
+	  that this is Ok, but some clients seems to be confused
+	  by this. I don't understand where this happens, inside
+	  of MIME::Entity or Mail::Internet resp. Mail::Head.
+	  Mail::Head works Ok in my tests, maybe the handling of
+	  the X- fields in MIME::Entity is broken.
+
+	  Anyway. The X-Mailer field of JaM is now a few
+ 	  characters shorter, which avoids this strange behavior.
+	  Not really a bugfix, not really a bug ;)
+
+	  Credits for reporting this bug go to:
+	  - Hrvoje Husic <husic@zyn.de>
+	  - Michael Kalus <mkalus@expressvu.com>
 
 1.0.2 2001/09/25 joern
 	Features:

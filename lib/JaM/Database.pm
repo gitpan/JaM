@@ -1,11 +1,11 @@
-# $Id: Database.pm,v 1.4 2001/08/29 19:49:28 joern Exp $
+# $Id: Database.pm,v 1.5 2001/10/27 15:17:28 joern Exp $
 
 package JaM::Database;
 
 use strict;
 use Carp;
 use Data::Dumper;
-use DBI;
+use DBI 1.20;
 
 sub dbi_source		{ my $s = shift; $s->{dbi_source}
 		          = shift if @_; $s->{dbi_source}	}

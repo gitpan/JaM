@@ -1,4 +1,4 @@
-# $Id: Address.pm,v 1.1 2001/09/02 16:17:32 joern Exp $
+# $Id: Address.pm,v 1.2 2001/10/27 15:17:28 joern Exp $
 
 package JaM::GUI::Address;
 
@@ -182,13 +182,13 @@ sub show {
 	
 	$self->gtk_address_table->hide;
 	
-	my $ar = JaM::Address->list ( dbh => $self->dbh );
+	my $href = JaM::Address->list ( dbh => $self->dbh );
 	my @address_ids;
 	$self->address_ids(\@address_ids);
 	
-	foreach my $entry ( @{$ar} ) {
-		push @address_ids, $entry->{id};
-		$list->append($entry->{email});
+	foreach my $email ( sort keys %{$href} ) {
+		push @address_ids, $href->{$email}->{id};
+		$list->append($email);
 	}
 
 	if ( @address_ids ) {

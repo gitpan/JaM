@@ -1,4 +1,9 @@
-$Id: Changes,v 1.22 2001/10/14 10:17:10 joern Exp $
+$Id: Changes,v 1.23 2001/10/27 15:17:27 joern Exp $
+
+1.0.4 2001/10/27 joern
+	Bugfixes:
+	- Due to a incompatible interface change in DBI 1.20
+	  (selectall_hashref) JaM now needs DBI >= 1.20.
 
 1.0.3 2001/10/14 joern
 	Bugfixes:

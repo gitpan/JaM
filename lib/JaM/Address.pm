@@ -1,4 +1,4 @@
-# $Id: Address.pm,v 1.1 2001/09/02 16:17:32 joern Exp $
+# $Id: Address.pm,v 1.2 2001/10/27 15:17:28 joern Exp $
 
 package JaM::Address;
 
@@ -113,8 +113,8 @@ sub list {
 	
 	my $href = $dbh->selectall_hashref (
 		"select id, email
-		 from   Address
-		 order by email"
+		 from   Address",
+		 "email"
 	);
 	
 	return $href;

@@ -1,8 +1,6 @@
-# $Id: GUI.pm,v 1.27 2001/08/19 09:56:45 joern Exp $
+# $Id: GUI.pm,v 1.29 2001/08/19 18:03:03 joern Exp $
 
 package JaM::GUI;
-
-$VERSION = "0.06";
 
 @ISA = qw ( JaM::GUI::Component );
 
@@ -233,6 +231,16 @@ sub create_menubar {
 				dbh => $self->dbh
 			);
 			$db->build_configuration_window;
+		  } },
+
+                { path        => '/Edit/_User Configuration',
+		  accelerator => '<control>U',
+                  callback    => sub {
+		  	require JaM::GUI::Config;
+		  	my $conf = JaM::GUI::Config->new (
+				dbh => $self->dbh
+			);
+			$conf->build;
 		  } },
 
                 { path        => '/_Message',

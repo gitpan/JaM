@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.8 2001/08/19 09:56:45 joern Exp $
+# $Id: Mail.pm,v 1.9 2001/08/19 11:36:11 joern Exp $
 
 package JaM::Mail;
 
@@ -8,12 +8,6 @@ use strict;
 use Data::Dumper;
 use Time::Local;
 use JaM::Folder;
-
-use vars qw($VERSION $REVISION @ISA @EXPORT);
-
-$VERSION = '0.01';
-$REVISION = '$Revision: 1.8 $';
-
 use Storable qw ( thaw );
 use MIME::WordDecoder;
 

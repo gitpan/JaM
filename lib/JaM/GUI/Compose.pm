@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.16 2001/08/19 09:56:45 joern Exp $
+# $Id: Compose.pm,v 1.17 2001/08/19 15:32:39 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -608,7 +608,20 @@ sub insert_reply_message {
 	);
 	
 	my $text = $self->gtk_text;
-	$text->insert (undef, undef, undef, $mail_as_text->text);
+	my $charset = $mail->head->mime_attr('content-type.charset');
+
+	if ( $charset =~ /^utf-?8$/i ) {
+		$self->message_window (
+			message => "Warning:\n\n".
+				   "Reply message was converted from\n".
+				   "UTF-8 to ISO-8859-1.",
+		);
+		require Unicode::String;
+		my $content = Unicode::String::utf8($mail_as_text->text);
+		$text->insert (undef, undef, undef, $content->latin1);
+	} else {
+		$text->insert (undef, undef, undef, $mail_as_text->text);
+	}
 
 	my $subject = $mail->joined_head('subject');
 	$subject = "Re: $subject" if $subject !~ /^(Re|Aw):/i;

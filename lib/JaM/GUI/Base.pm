@@ -1,4 +1,4 @@
-# $Id: Base.pm,v 1.12 2001/08/18 16:37:10 joern Exp $
+# $Id: Base.pm,v 1.13 2001/08/19 15:32:39 joern Exp $
 
 package JaM::GUI::Base;
 
@@ -276,7 +276,7 @@ sub message_window {
 	
 	my $dialog = Gtk::Dialog->new;
 
-	my $label = Gtk::Label->new ($message);
+	my $label = Gtk::Label->new ("\n".$message."\n");
 	$dialog->vbox->pack_start ($label, 1, 1, 0);
 	$dialog->border_width(10);
 	$dialog->set_title ("JaM Message");

@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.16 2001/08/19 09:56:46 joern Exp $
+# $Id: Mail.pm,v 1.17 2001/08/19 11:36:11 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -78,9 +78,9 @@ sub show {
 
 	my $html = $self->gtk_mail_html_object;
 	$html->widget->freeze;
-	$html->begin;
-	
+
 	if ( not $mail_id ) {
+		$html->begin;
 		$html->end;
 		$html->widget->thaw;
 		$self->mail(undef);
@@ -94,6 +94,10 @@ sub show {
 	
 	$self->mail ($mail);
 
+	$html->begin (
+		charset => $self->mail->head->mime_attr('content-type.charset')
+	);
+	
 	# first print the header
 	$self->print_entity_head (
 		entity => $mail,

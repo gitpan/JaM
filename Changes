@@ -1,4 +1,31 @@
-$Id: Changes,v 1.7 2001/08/19 09:56:45 joern Exp $
+$Id: Changes,v 1.10 2001/08/19 18:03:02 joern Exp $
+
+0.9.7 2001/08/19 joern
+	Features:
+	- this version ships with a patch for Gtk::HTML to support
+	  the set_default_content_type() method. JaM uses it, when
+	  available, to set the correct charset when viewing mail.
+	  (see statement beyond regarding support of character sets
+	  for outgoing/replied messages).
+	  If the method is missing, mails will be displayed with
+	  the standard locale charset, which may be wrong.
+	  The patch is located in the patches/ directory, together
+	  with a small README. I hope Ken will add this patch to the
+	  next Gtk-Perl release, so we'll get this feature without
+	  patching.
+	- convert reply messages iso-8859-1, if the orignal message is
+	  utf-8 encoded. unfortunately the i18n stuff in Gtk+ is well
+	  undocumented (at least i can't find good documents, only the
+	  mailing list archive with a horrible slow search frontend), so i
+	  insist on iso-8859-1 for now. i hope i can change this when
+	  i learned more about i18n. iso-8859-1 is ok for me, that's what
+	  counts here ;)
+	  JaM now needs Unicode::String to do the necessary conversions.
+	- user configuation dialog. the layout of this dialog is somewhat
+	  raw (can't get Label widgets aligned *sigh*), but it works.
+
+	Info:
+	- table schema is now version 3
 
 0.9.6 2001/08/18 joern
 	Bugfixes:

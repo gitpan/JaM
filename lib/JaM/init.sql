@@ -211,12 +211,6 @@ insert into Config (name, description, value, visible, type)
 values ('folder_tree_left', 'Place Folder Tree Left', '1', 1, 'bool');
 
 insert into Config (name, description, value, visible, type)
-values ('font_name_fixed', 'Fixed Font', '-*-courier-medium-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
-
-insert into Config (name, description, value, visible, type)
-values ('font_name_fixed_bold', 'Fixed Font Bold', '-*-courier-bold-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
-
-insert into Config (name, description, value, visible, type)
 values ('font_name_folder_read', 'Folder Read Font', '-*-helvetica-medium-r-*-*-*-100-*-*-*-*-*-*', 1, 'font');
 
 insert into Config (name, description, value, visible, type)
@@ -226,10 +220,10 @@ insert into Config (name, description, value, visible, type)
 values ('folder_unread_child_color', 'Color of folders with unread child folders', '#666666', 1, 'html_color');
 
 insert into Config (name, description, value, visible, type)
-values ('font_name_mail_read', 'Mail Read Font', '-*-helvetica-medium-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
+values ('font_name_mail_read', 'Mail Subject Read Font', '-*-helvetica-medium-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
 
 insert into Config (name, description, value, visible, type)
-values ('font_name_mail_unread', 'Mail Unread Font', '-*-helvetica-bold-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
+values ('font_name_mail_unread', 'Mail Subject Unread Font', '-*-helvetica-bold-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
 
 insert into Config (name, description, value, visible, type)
 values ('font_name_mail_compose', 'Mail Compose Font', '-*-courier-medium-r-*-*-*-120-*-*-*-*-*-*', 1, 'font');
@@ -295,5 +289,18 @@ values ('drafts_folder_id', '', '4', 0, '');
 
 insert into Config (name, description, value, visible, type)
 values ('templates_folder_id', '', '6', 0, '');
+
+delete from Config where name in ('font_name_fixed', 'font_name_fixed_bold');
+
+update Config set description = 'Mail Subject Read Font'
+where name='font_name_mail_read';
+
+update Config set description = 'Mail Subject Unread Font'
+where name='font_name_mail_unread';
+
+update Config set description = 'Do not reply to these addresses'
+where name='no_reply_addresses';
+
+update Config set visible=0 where name='folder_tree_left';
 
 #</version3>#

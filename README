@@ -1,4 +1,4 @@
-$Id: README,v 1.2 2001/08/12 14:32:54 joern Exp $
+$Id: README,v 1.4 2001/08/19 18:03:03 joern Exp $
 
 NAME
 	JaM - Just a Mailer
@@ -42,7 +42,11 @@ PREREQUISITES
 	
 	JaM uses the Gtk+ toolkit for its gui.
 	
-	3. A bunch of Perl modules:
+	3. html2ps
+	
+	html2ps is used for printing mails.
+	
+	4. A bunch of Perl modules:
 	
 	  DBI
 	  DBD::mysql
@@ -56,6 +60,7 @@ PREREQUISITES
 	  Net::POP3
 	  Net::SMTP
 	  Storable
+	  Unicode::String
 
 	I recommend using the powerfull CPAN module to install
 	these modules automatically. JaM ships with a CPAN Bundle
@@ -118,6 +123,10 @@ INSTALLATION
 	contains the MySQL connection information. All other files of JaM
 	did not to be writable by the user, so you can install JaM in a
 	read only system area. Multiuser access is no problem at all.
+	
+	You also may set the JAMRC environment variable pointing to another
+	.JaMrc file. This way multiple database instances per user are
+	supported.
 
 UPDATING TO NEWER VERSION
 	Updating is as easy as installing. Just extract the archive where

@@ -1,4 +1,4 @@
-# $Id: HTMLSurface.pm,v 1.10 2001/08/18 16:37:11 joern Exp $
+# $Id: HTMLSurface.pm,v 1.11 2001/08/19 11:36:11 joern Exp $
 
 package JaM::GUI::HTMLSurface;
 
@@ -233,8 +233,22 @@ sub cb_url_requested {
 
 sub begin {
 	my $self = shift;
+	my %par = @_;
+	my ($charset) = $par{'charset'};
+	
+	$charset ||= "iso-8859-1";
+
+	if ( $self->widget->can ("set_default_content_type") ) {
+		$self->widget->set_default_content_type("text/html; charset=$charset");
+	}
+
 	$self->handle($self->widget->begin);
 	$self->image_pool ({});
+	$self->write(
+		'<meta http-equiv="content-type" '.
+		'content="text/html; charset='.$charset.'">'."\n"
+	);
+
 	$self->write ('<html><body bgcolor="#d5d5d5">');
 	1;
 }

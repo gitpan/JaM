@@ -1,5 +1,6 @@
 Known bugs:
 -----------
+- no word encoding on mail headers for outgoing mail
 - the "color parents gray" algorithm has a bug: siblings are
   colored too, sometimes.
 - on folder change (rename, move, delete etc.) recalculate
@@ -10,8 +11,8 @@ Known bugs:
 
 This is my actual TODO list:
 ----------------------------
+- address book
 - mark a selection of mails as read
-- edit configuration parameters
 - input filter: delete operation
 - pop3 error window
 - smtp error window
@@ -19,8 +20,8 @@ This is my actual TODO list:
   change its status to read
 - prevent opening several instance of the same window, if
   this makes no sense (e.g. account window)
-- address book
 - make browser application configurable
 - check RFC:
   - which Charset should be used when replying mail?
 - use 8 chars for tabs
+- make user configuration dialog look nice

@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.24 2001/09/02 16:17:32 joern Exp $
+# $Id: Compose.pm,v 1.25 2001/09/08 14:33:18 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -268,7 +268,7 @@ sub add_recipient_widget {
 	foreach my $header ( "To", "CC", "BCC", "Reply-To" ) {
 		my $item = Gtk::MenuItem->new ($header);
 		$item->show;
-		$item->signal_connect ("activate", \&cb_set_header_choice, $self, $i, $header );
+		$item->signal_connect ("select", \&cb_set_header_choice, $self, $i, $header );
 		$to_options_menu->append ($item);
 	}
 	my $to_options = Gtk::OptionMenu->new;
@@ -287,7 +287,22 @@ sub add_recipient_widget {
 	push @{$self->gtk_to_entries}, $to_entry;
 	push @{$self->gtk_to_options}, $to_options;
 
-	push @{$self->to_header_choices}, "To";
+	if ( @{$self->to_header_choices} ) {
+		my $last_choice = $self->to_header_choices->[@{$self->to_header_choices}-1];
+print STDERR "last_choice=$last_choice\n";
+		if ( $last_choice eq 'CC' ) {
+			push @{$self->to_header_choices}, "CC";
+			$to_options->set_history (1);
+		} elsif ( $last_choice eq 'BCC' ) {
+			push @{$self->to_header_choices}, "BCC";
+			$to_options->set_history (2);
+		} else {
+			push @{$self->to_header_choices}, "To";
+		}
+		
+	} else {
+		push @{$self->to_header_choices}, "To";
+	}
 	
 	return $to_entry;
 }

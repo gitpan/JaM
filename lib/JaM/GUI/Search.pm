@@ -1,4 +1,4 @@
-# $Id: Search.pm,v 1.1 2001/09/02 11:15:26 joern Exp $
+# $Id: Search.pm,v 1.2 2001/09/08 14:33:19 joern Exp $
 
 package JaM::GUI::Search;
 
@@ -214,12 +214,14 @@ sub start_query {
 	my @tables = ("Mail M");
 
 	if ( $folder_id and $recursive) {
-		push @tables, "Folder F";
-		push @where,
-			"F.path like '".
-			 JaM::Folder->by_id($folder_id)->path.'/%'.
-			 "' and M.folder_id = F.id";
-	} elsif ( $folder_id  ) {
+		if ( $folder_id != 1 ) {
+			push @tables, "Folder F";
+			push @where,
+				"(F.path like '".
+				 JaM::Folder->by_id($folder_id)->path.'/%'.
+				 "' or M.folder_id=$folder_id) and M.folder_id = F.id ";
+		}
+	} elsif ( $folder_id ) {
 		push @where, "M.folder_id=$folder_id";
 	}
 	
@@ -245,6 +247,8 @@ sub start_query {
 		   where  $where
 		   	  (".join (" $operation ", @op_where).")
 		   order by 5 desc\n";
+
+print STDERR "$sql\n";
 
 	$self->show ( sql => $sql );
 	

@@ -1,10 +1,10 @@
 #!/usr/local/bin/perl
 
-# $Id: jam.pl,v 1.20 2001/09/02 16:17:32 joern Exp $
+# $Id: jam.pl,v 1.21 2001/09/08 14:33:18 joern Exp $
 
 package JaM;
 
-$VERSION = "0.9.14";
+$VERSION = "1.0.0";
 
 use strict;
 

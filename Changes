@@ -1,4 +1,9 @@
-$Id: Changes,v 1.14 2001/09/01 10:54:36 joern Exp $
+$Id: Changes,v 1.15 2001/09/01 11:24:32 joern Exp $
+
+0.9.12 2001/09/01 joern
+	Bugfixes:
+	- %$/ sh*t: I broke the Ctrl+Q stuff due a foolish bug,
+	  so I push this release quickly
 
 0.9.11 2001/09/01 joern
 	If no critical bugs appear within the next week the next

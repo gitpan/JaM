@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.21 2001/09/01 10:54:37 joern Exp $
+# $Id: Compose.pm,v 1.22 2001/09/01 11:24:32 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -434,7 +434,7 @@ sub remove_quoted_text {
 	# correct ->set_point (from Gtk::Text), so I
 	# set this explicetely here.
 	my $index = $widget->get_position;
-	$index = $widget->set_point ($index);
+	$widget->set_point ($index);
 
 	my $len   = $widget->get_length;
 	my $text  = $widget->get_chars (0, $len);
@@ -449,6 +449,8 @@ sub remove_quoted_text {
 	$widget->forward_delete($cnt);
 	$widget->insert (undef, undef, undef, "\n");
 	$widget->thaw;
+
+	$self->changed(1);
 	
 	1;
 }

@@ -1,4 +1,4 @@
-# $Id: IO.pm,v 1.5 2001/09/01 10:54:36 joern Exp $
+# $Id: IO.pm,v 1.6 2001/09/15 06:35:18 joern Exp $
 
 package JaM::Filter::IO;
 
@@ -280,12 +280,12 @@ sub calculate_code {
 }
 
 sub reorder {
-	my $self = shift;
+	my $type = shift;
 	my %par = @_;
-	my ($filter_ids) = @par{'filter_ids'};
+	my ($filter_ids, $dbh) = @par{'filter_ids','dbh'};
 	
 	my $sortkrit = 1;
-	my $sth = $self->dbh->prepare (
+	my $sth = $dbh->prepare (
 		"update IO_Filter set sortkrit=? where id=?"
 	);
 	

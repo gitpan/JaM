@@ -1,4 +1,28 @@
-$Id: Changes,v 1.13 2001/08/29 19:49:28 joern Exp $
+$Id: Changes,v 1.14 2001/09/01 10:54:36 joern Exp $
+
+0.9.11 2001/09/01 joern
+	If no critical bugs appear within the next week the next
+	version will be 1.0.0.
+
+	Features:
+	- added File and Edit menu to the Compose Window
+	- mailto and other URI links are now parsed too in the Mail widget.
+	- pop3 error window
+	- smtp error window
+	- compose: confirm window appears only when content was changed
+
+	Bugfixes:
+	- filters which operates on the mail body crashed JaM
+	  if a mail had no body.
+	  NOTE: select all filters once in the IO Filter window,
+	  	otherwise this bugfix wont take effect
+	- deleting quoted text now works correct via Ctrl+Q
+	  resp. the corresponding menu item
+	- now with basic MIME word encoding on outgoing mail headers,
+	  using MIME::Words, which is supposed not to be fully
+	  RFC 1522 compliant. I'll check that in future.
+	- the "color parents gray" bug is fixed
+	- the update folder statistics bug is fixed
 
 0.9.10 2001/08/29 joern
 	Features:

@@ -1,4 +1,4 @@
-# $Id: IO.pm,v 1.4 2001/08/29 19:49:28 joern Exp $
+# $Id: IO.pm,v 1.5 2001/09/01 10:54:36 joern Exp $
 
 package JaM::Filter::IO;
 
@@ -349,7 +349,7 @@ sub calculate_code {
 	my $code;
 	
 	if ( $field eq 'body' ) {
-		$code .= "\$h->{entity}->bodyhandle->as_string ";
+		$code .= "( \$h->{entity}->bodyhandle ? \$h->{entity}->bodyhandle->as_string : '' ) ";
 	} else {
 		$code .= "\$h->{$field} ";
 	}

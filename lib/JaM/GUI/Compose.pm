@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.20 2001/08/29 19:49:28 joern Exp $
+# $Id: Compose.pm,v 1.21 2001/09/01 10:54:37 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -11,6 +11,7 @@ use JaM::GUI::MailAsText;
 use Data::Dumper;
 use MIME::Entity;
 use MIME::Types;
+use MIME::Words qw();
 use Net::SMTP;
 use File::Basename;
 use POSIX;
@@ -20,6 +21,8 @@ sub gtk_win		{ my $s = shift; $s->{gtk_win}
 		          = shift if @_; $s->{gtk_win}			}
 sub gtk_toolbar		{ my $s = shift; $s->{gtk_toolbar}
 		          = shift if @_; $s->{gtk_toolbar}		}
+sub gtk_menubar		{ my $s = shift; $s->{gtk_menubar}
+		          = shift if @_; $s->{gtk_menubar}		}
 sub gtk_notebook	{ my $s = shift; $s->{gtk_notebook}
 		          = shift if @_; $s->{gtk_notebook}		}
 sub gtk_subject		{ my $s = shift; $s->{gtk_subject}
@@ -48,8 +51,8 @@ sub save_as_template	{ my $s = shift; $s->{save_as_template}
 		          = shift if @_; $s->{save_as_template}		}
 sub save_as_draft	{ my $s = shift; $s->{save_as_draft}
 		          = shift if @_; $s->{save_as_draft}		}
-sub ctrl_key_pressed	{ my $s = shift; $s->{ctrl_key_pressed}
-		          = shift if @_; $s->{ctrl_key_pressed}		}
+sub changed		{ my $s = shift; $s->{changed}
+		          = shift if @_; $s->{changed}			}
 
 sub delete_mail_after_send  { my $s = shift; $s->{delete_mail_after_send}
 		              = shift if @_; $s->{delete_mail_after_send}  }
@@ -67,7 +70,8 @@ sub add_header {
 sub build {
 	my $self = shift;
 
-	my $win = Gtk::Window->new;
+	my $win = $self->gtk_win ( Gtk::Window->new );
+
 	my $vpane = new Gtk::VPaned();
 	$win->add ($vpane);
 	my $vbox_head = Gtk::VBox->new (0, 5);
@@ -80,11 +84,13 @@ sub build {
 	$vpane->set_gutter_size( 15 );
 	$vpane->show();
 	
+	my $menubar  = $self->create_menubar;
 	my $toolbar  = $self->create_toolbar;
 	my $notebook = $self->create_notebook;
 	my $subject  = $self->create_subject;
 	my $body     = $self->create_body;
 
+	$vbox_head->pack_start ($menubar,  0, 1, 0);
 	$vbox_head->pack_start ($toolbar,  0, 1, 0);
 	$vbox_head->pack_start ($notebook, 1, 1, 0);
 	$vbox_body->pack_start ($subject,  0, 1, 0);
@@ -98,7 +104,6 @@ sub build {
 	$win->signal_connect ("delete-event", sub { $self->close_window } );
 
 	$self->gtk_to_entries->[0]->grab_focus;
-	$self->gtk_win($win);
 	$self->attachments([]);
 	$self->additional_headers([]);
 	$win->show;
@@ -108,7 +113,7 @@ sub build {
 
 sub create_toolbar {
 	my $self = shift; $self->trace_in;
-	
+
 	my $toolbar = Gtk::Toolbar->new ( 'horizontal', 'text' );
 	$toolbar->set_space_size( 3 );
 	$toolbar->set_space_style( 'empty' );
@@ -124,12 +129,59 @@ sub create_toolbar {
 		$label, $tooltip, undef, undef
 	);
 
-	$send_button->signal_connect ("clicked", sub { $self->cb_send_button (@_) } );
+	$send_button->signal_connect ("clicked", sub { $self->cb_send_button } );
 
 	$toolbar->show();
 	$self->gtk_toolbar ($toolbar);
 
 	return $toolbar;
+}
+
+sub create_menubar {
+	my $self = shift;
+	
+	my @menu_items = (
+		{ path        => '/_File',
+                  type        => '<Branch>' },
+
+                { path        => '/File/Send Message',
+                  callback    => sub { $self->cb_send_button }, },
+                { path        => '/File/Cancel Message',
+                  callback    => sub { $self->close_window }, },
+	
+		{ path        => '/_Edit',
+                  type        => '<Branch>' },
+
+                { path        => '/Edit/Cu_t',
+		  accelerator => '<control>X',
+                  callback    => sub { $self->gtk_text->signal_emit_by_name( 'cut-clipboard' ) } },
+                { path        => '/Edit/_Copy',
+		  accelerator => '<control>C',
+                  callback    => sub { $self->gtk_text->signal_emit_by_name( 'copy-clipboard' ) } },
+                { path        => '/Edit/_Paste',
+		  accelerator => '<control>V',
+                  callback    => sub { $self->gtk_text->signal_emit_by_name( 'paste-clipboard' ) } },
+
+		{ path	      => '/Edit/sep1',
+		  type	      => '<Separator>' },
+
+                { path        => '/Edit/Delete _Quoted text beneath cursor',
+		  accelerator => '<control>Q',
+                  callback    => sub { $self->remove_quoted_text }, }
+	);
+
+	my $accel_group = Gtk::AccelGroup->new;
+	my $item_factory = Gtk::ItemFactory->new (
+		'Gtk::MenuBar',
+		'<main>',
+		$accel_group
+	);
+	$item_factory->create_items ( @menu_items );
+	$self->gtk_win->add_accel_group ( $accel_group );
+	my $menubar = $self->gtk_menubar ( $item_factory->get_widget( '<main>' ) );
+	$menubar->show;
+	
+	return $menubar;
 }
 
 sub create_notebook {
@@ -225,6 +277,7 @@ sub add_recipient_widget {
 	my $to_entry = Gtk::Entry->new;
 	my $nr = scalar(@{$self->gtk_to_entries});
 	$to_entry->signal_connect_after("key_press_event", sub { $self->cb_to_entry_key_press (@_, $nr) });
+	$to_entry->signal_connect ("changed", sub { $self->changed(1) } );
 	$to_entry->show;
 	$to_hbox->pack_start($to_entry, 1, 1, 0);
 
@@ -290,6 +343,8 @@ sub create_subject {
 	$style->font ($self->config('font_mail_compose'));
 	$subject->set_style ($style);
 	$subject->signal_connect_after("key_press_event", sub { $self->cb_subject_key_press (@_) });
+	$subject->signal_connect ("changed", sub { $self->changed(1) } );
+
 	$subject->show;
 	$hbox->pack_start ($subject, 1, 1, 0);
 
@@ -331,7 +386,7 @@ sub create_body {
 	$style->font ($self->config('font_mail_compose'));
 	$text->set_style ($style);
 	$text->signal_connect ("key_press_event",   sub { $self->cb_text_key_press (@_) });
-	$text->signal_connect ("key_release_event", sub { $self->cb_text_key_release (@_) });
+	$text->signal_connect ("changed", sub { $self->changed(1) } );
 	$text->show();
 
 	# Add a vertical scrollbar to the GtkText widget
@@ -348,22 +403,6 @@ sub create_body {
 	return $table;
 }
 
-sub cb_text_key_release {
-	my $self = shift;
-	my ($widget, $event) = @_;
-
-	my $keyval = $event->{keyval};
-	$self->debug ("release keyval=$keyval");
-
-	if ( $event->{keyval} == $Gtk::Keysyms{Control_L} or
-	     $event->{keyval} == $Gtk::Keysyms{Control_R} ) {
-	     	# track state of ctrl key
-		$self->ctrl_key_pressed(0);
-	}
-	
-	1;
-}
-
 sub cb_text_key_press {
 	my $self = shift;
 	my ($widget, $event) = @_;
@@ -375,31 +414,43 @@ sub cb_text_key_press {
 		# enter key should delete actual selection
 		$widget->delete_selection;
 
-	} elsif ( $event->{keyval} == $Gtk::Keysyms{Control_L} or
-	          $event->{keyval} == $Gtk::Keysyms{Control_R} ) {
-	     	# track state of ctrl key
-		$self->ctrl_key_pressed(1);
-
-	} elsif ( $self->ctrl_key_pressed and $keyval == $Gtk::Keysyms{q} ) {
-		# Ctrl Q removes quoted stuff
-		$widget->freeze;
-		my $index = $widget->get_point;
-		my $len   = $widget->get_length;
-		my $text  = $widget->get_chars (0, $len);
-		$text =~ s/(.{$index})//s;
-		my $line;
-		my $cnt;
-		while ( $text =~ /^(.*)$/mg ) {
-			$line = $1;
-			last if $line !~ m/^\s*>/ and $line !~ /^\s*$/;
-			$cnt += length($line)+1;
-		}
-		$widget->forward_delete($cnt);
-		$widget->insert (undef, undef, undef, "\n");
-		$widget->thaw;
 	}
 	
 	return;
+}
+
+sub remove_quoted_text {
+	my $self = shift;
+
+	my $widget = $self->gtk_text;
+	
+	$widget->freeze;
+
+	# this workaround is needed to make this method
+	# function when called from the menu. Obviously
+	# ->get_point does not return the correct value,
+	# so I use ->get_position (from Gtk::Editable).
+	# But the manipulation methods beyound need a
+	# correct ->set_point (from Gtk::Text), so I
+	# set this explicetely here.
+	my $index = $widget->get_position;
+	$index = $widget->set_point ($index);
+
+	my $len   = $widget->get_length;
+	my $text  = $widget->get_chars (0, $len);
+	$text =~ s/(.{$index})//s;
+	my $line;
+	my $cnt;
+	while ( $text =~ /^(.*)$/mg ) {
+		$line = $1;
+		last if $line !~ m/^\s*>/ and $line !~ /^\s*$/;
+		$cnt += length($line)+1;
+	}
+	$widget->forward_delete($cnt);
+	$widget->insert (undef, undef, undef, "\n");
+	$widget->thaw;
+	
+	1;
 }
 
 sub add_signature {
@@ -421,7 +472,6 @@ sub add_signature {
 
 sub cb_send_button {
 	my $self = shift;
-	my %par = @_;
 
 	my $to_entries = $self->gtk_to_entries;
 	my $to_headers = $self->to_header_choices;
@@ -434,10 +484,17 @@ sub cb_send_button {
 			push @to, $value;
 			$field = $to_headers->[$i];
 			if ( $field ne 'BCC' ) {
-				push @{$header{$field}}, $value;
+				push @{$header{$field}}, $self->encode_word($value)
 			}
 		}
 		++$i;
+	}
+	
+	if ( not @to ) {
+		$self->message_window (
+			message => "Please specify a recipient."
+		);
+		return 1;
 	}
 	
 	my $account = JaM::Account->load_default ( dbh => $self->dbh )
@@ -462,8 +519,8 @@ sub cb_send_button {
 	
 	my $mail = MIME::Entity->build (
 		%header,
-		From => $from,
-		Subject => $subject,
+		From => $self->encode_word($from),
+		Subject => $self->encode_word($subject),
 		Date => $self->get_rfc822_date,
 		Data => [ $text ],
 		Charset => 'iso-8859-1',
@@ -496,7 +553,12 @@ sub cb_send_button {
 			die "Dataend"  if not $smtp->dataend();
 		};
 		if ( $@ ) {
-			warn "smtp error: $@";
+			my $command = $@;
+			print $command;
+			$command =~ s/ at .*\n//;
+			$self->message_window (
+				message => "SMTP error when transmitting command '$command'"
+			);
 			return 1;
 		}
 	}
@@ -574,6 +636,16 @@ sub cb_send_button {
 	}
 	
 	return 1;
+}
+sub encode_word {
+	my $self = shift;
+	my ($word) = @_;
+	
+	if ( $word =~ /[^a-z0-9_\@<>.]/i ) {
+		return MIME::Words::encode_mimeword($word);
+	} else {
+		return $word;
+	}
 }
 
 sub get_rfc822_date {
@@ -686,13 +758,12 @@ sub insert_reply_message {
 				$value = $adr->address;
 				next if $no_reply_regex ne "()" and $value =~ /$no_reply_regex/;
 				next if $to{$value};
-				$gtk_to_entries->[@{$gtk_to_entries}-1]->set_text ($value);
-				$gtk_to_options->[@{$gtk_to_entries}-1]->set_history(
-					($field eq 'from' or $field eq 'reply-to') ? 0 : 1
+				
+				$self->add_recipient (
+					field   => ($field eq 'from' or $field eq 'reply-to') ? 'To' : 'CC',
+					address => $value
 				);
-				$to_header_choices->[@{$gtk_to_entries}-1] =
-					($field eq 'from' or $field eq 'reply-to') ? 'To' : 'CC';
-				$self->add_recipient_widget;
+
 				$to{$value} = 1;
 			}
 		}
@@ -704,6 +775,28 @@ sub insert_reply_message {
 			"in-reply-to", $msgid
 		);
 	}
+
+	$self->changed(0);
+
+	1;
+}
+
+sub add_recipient {
+	my $self = shift;
+	my %par = @_;
+	my ($field, $address) = @par{'field','address'};
+
+	my $gtk_to_entries    = $self->gtk_to_entries;
+	my $gtk_to_options    = $self->gtk_to_options;
+	my $to_header_choices = $self->to_header_choices;
+	
+	$gtk_to_entries->[@{$gtk_to_entries}-1]->set_text ($address);
+	$gtk_to_options->[@{$gtk_to_entries}-1]->set_history(
+		($field eq 'To') ? 0 : 1
+	);
+	$to_header_choices->[@{$gtk_to_entries}-1] = $field;
+
+	$self->add_recipient_widget;
 
 	1;
 }
@@ -719,7 +812,7 @@ sub cb_add_button {
 		dir 	 => $dir,
 		filename => "",
 		confirm  => 0,
-		cb 	 => sub { $self->add_attachment ( filename => $_[0] ) }
+		cb 	 => sub { $self->add_attachment ( filename => $_[0] ); $self->changed(1) }
 	);
 	
 }
@@ -828,6 +921,8 @@ sub forwarded_message {
 	$subject = "[Fwd: $subject]";
 	$self->gtk_subject->set_text ($subject);
 
+	$self->changed(0);
+
 	1;
 }
 
@@ -919,6 +1014,11 @@ sub wrap_mail_text {
 sub close_window {
 	my $self = shift;
 	
+	if ( not $self->changed ) {
+		$self->gtk_win->destroy;
+		return 1;
+	}
+	
 	$self->confirm_window (
 		message => "Do you want to save the unsent message in the Drafts folder?",
 		position => 'center',
@@ -983,6 +1083,8 @@ sub insert_template_message {
 	$self->add_attachment (
 		copy_attachments => $mail
 	);
+
+	$self->changed(0);
 	
 	1;
 }

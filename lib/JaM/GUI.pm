@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.31 2001/08/28 18:58:23 joern Exp $
+# $Id: GUI.pm,v 1.32 2001/09/01 10:54:36 joern Exp $
 
 package JaM::GUI;
 
@@ -409,7 +409,9 @@ sub cb_get_button {
 	my $ok = $pop->login ( $account->pop3_login, $account->pop3_password );
 	
 	if ( not $ok ) {
-		warn ("error logging into pop3 account");
+		$self->message_window (
+			message => "Error logging into pop3 account."
+		);
 		return 1;
 	}
 	

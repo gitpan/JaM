@@ -1,34 +1,22 @@
-$Id: TODO,v 1.22 2001/08/29 19:49:28 joern Exp $
+$Id: TODO,v 1.23 2001/09/01 10:54:36 joern Exp $
 
 Known bugs:
 -----------
-- no MIME word encoding on mail headers for outgoing mail
-- the "color parents gray" algorithm has a bug: siblings are
-  colored too, sometimes.
-- on folder change (rename, move, delete etc.) recalculate
-  folder context popup. otherwise there are inconsistencies
-  e.g. in a opened io filter window.
-- if you move all mails away from a folder, its statistic is
-  not updated correctly in the folder treeview (press "mark
-  all read" as a workaround)
+- zarroo bugs
 
 This is my actual TODO list:
 ----------------------------
-- save mail with ctrl+s as temp. draft, so mails can
-  survive system crashes (which are really seldom, but
-  it's a cool feature at all ;)
-- parse mailto links
-- parse https links (or generic: URIs ;)
-- address book
 - mark a selection of mails as read
+- address book
 - input filter: delete operation
-- pop3 error window
-- smtp error window
 - when selecting last selected message in a folder, don't
   change its status to read
 - make browser application configurable
 - check RFC:
   - which charset should be used when replying mail?
-- use 8 chars for tabs
 - make user configuration dialog look nice
 - set focus to the subjects list after clicking on a folder
+- multiple file selection for attachments
+- save mail with ctrl+s as temp. draft, so mails can
+  survive system crashes (which are really seldom, but
+  it's a cool feature at all ;)

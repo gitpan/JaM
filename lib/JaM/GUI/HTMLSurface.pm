@@ -1,4 +1,4 @@
-# $Id: HTMLSurface.pm,v 1.11 2001/08/19 11:36:11 joern Exp $
+# $Id: HTMLSurface.pm,v 1.12 2001/09/01 10:54:37 joern Exp $
 
 package JaM::GUI::HTMLSurface;
 
@@ -23,6 +23,8 @@ sub url_in_focus    { my $s = shift; $s->{url_in_focus}
 		      = shift if @_; $s->{url_in_focus}	    }
 sub button3_callback{ my $s = shift; $s->{button3_callback}
 		      = shift if @_; $s->{button3_callback} }
+sub mail_link_callback { my $s = shift; $s->{mail_link_callback}
+		         = shift if @_; $s->{mail_link_callback} }
 
 sub gtk_attachment_popup    { my $s = shift; $s->{gtk_attachment_popup}
 		      	      = shift if @_; $s->{gtk_attachment_popup}	    }
@@ -32,7 +34,8 @@ sub new {
 	my $type = shift;
 	my %par = @_;
 	
-	my ($image_dir, $button3_callback) = @par{'image_dir','button3_callback'};
+	my  ($image_dir, $button3_callback, $mail_link_callback) =
+	@par{'image_dir','button3_callback','mail_link_callback'};
 
 	my $widget;
 	eval {
@@ -44,6 +47,7 @@ sub new {
 		widget    => $widget,
 		image_dir => $image_dir,
 		button3_callback => $button3_callback,
+		mail_link_callback => $mail_link_callback,
 		handle    => undef,
 	}, $type;
 	
@@ -118,9 +122,13 @@ sub url_click {
 
 	my $url = $self->url_in_focus;
 
-	if ( $url =~ /^(http|ftp):/ ) {
+	if ( $url =~ /^(https?|ftp):/ ) {
 		return 1 if $event->{button} != 1;
 		system ("netscape -remote 'openURL($url)'");
+		return 1;
+	} elsif ( $url =~ /mailto:([^\s]+)/ ) {
+		my $cb = $self->mail_link_callback;
+		&$cb( address => $1 );
 		return 1;
 	}
 	

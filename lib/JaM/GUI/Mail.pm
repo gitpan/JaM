@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.17 2001/08/19 11:36:11 joern Exp $
+# $Id: Mail.pm,v 1.18 2001/09/01 10:54:37 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -40,7 +40,8 @@ sub build {
 
 	my $html = JaM::GUI::HTMLSurface->new (
 		image_dir => "/tmp",
-		button3_callback => sub { $self->popup_menu(@_) }
+		button3_callback => sub { $self->popup_menu(@_) },
+		mail_link_callback => sub { $self->open_mail_link_window ( @_ ) }
 	);
 	my $widget = $html->widget;
 	$sw->show;
@@ -147,8 +148,9 @@ sub move_to_folder {
 	return if not $mail and not $mail_ids;
 	
 	my $folder_id = $folder_object->id;
-
+	my $parent_folder_id;
 	if ( $mail ) {
+		$parent_folder_id = $mail->folder_id;
 		$mail->move_to_folder ( folder_id => $folder_id );
 
 	} else {
@@ -157,6 +159,7 @@ sub move_to_folder {
 				mail_id => $mail_id,
 				dbh     => $self->dbh
 			);
+			$parent_folder_id = $mail->folder_id;
 			$mail->move_to_folder (
 				folder_id => $folder_id
 			);
@@ -166,7 +169,9 @@ sub move_to_folder {
 	$self->comp('folders')->update_folder_item (
 		folder_object => $folder_object
 	);
-
+	$self->comp('folders')->update_folder_item (
+		folder_object => JaM::Folder->by_id ($parent_folder_id)
+	);
 
 	1;
 }
@@ -407,7 +412,8 @@ sub put_mail_text {
 	my $quoted_color = $self->config('quoted_color');
 	
 	$data =~ s/</&lt;/g;
-	$data =~ s!(http://[^\s]+)!<a href="$1">$1</a>!g;
+	$data =~ s!(\w+://[^\s]+)!<a href="$1">$1</a>!g;
+	$data =~ s!(mailto:[^\s]+)!<a href="$1">$1</a>!g;
 	$data =~ s!^(\s*)(>.*)$!$1<font face="Courier" color="$quoted_color">$2</font>!mg;
 
 	$widget->write ('<table border="0" cellpadding="0" cellspacing="2"><tr><td>')
@@ -515,6 +521,34 @@ sub open_compose_window {
 	
 	return $compose;
 
+}
+
+sub open_mail_link_window {
+	my $self = shift; $self->trace_in,
+	my %par = @_;
+	my ($address) = @par{'address'};
+
+	my $account = JaM::Account->load_default ( dbh => $self->dbh );
+	if ( not $account->smtp_server or
+	     not $account->from_name or
+	     not $account->from_adress ) {
+		$self->account_window;
+		return 1;
+	}
+	
+	my $compose = JaM::GUI::Compose->new (
+		dbh => $self->dbh
+	);
+	
+	$compose->build;
+	$compose->add_recipient (
+		field => 'To',
+		address => $address
+	);
+	
+	$compose->gtk_subject->grab_focus;
+
+	1;
 }
 
 1;

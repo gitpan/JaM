@@ -1,4 +1,4 @@
-# $Id: Folder.pm,v 1.12 2001/08/29 19:49:28 joern Exp $
+# $Id: Folder.pm,v 1.13 2001/09/01 10:54:36 joern Exp $
 
 package JaM::Folder;
 
@@ -244,7 +244,7 @@ sub recalculate_folder_stati {
 	my $sth = $dbh->prepare (	
 		"select f1.id, sum(f2.mail_sum-f2.mail_read_sum)
 		 from   Folder f1, Folder f2
-		 where  f2.path like concat(f1.path,'%')
+		 where  f2.path like concat(f1.path,'/%')
 		 group by 1"
 	);
 	$sth->execute;

@@ -1,4 +1,4 @@
-$Id: TODO,v 1.24 2001/09/02 11:15:25 joern Exp $
+$Id: TODO,v 1.25 2001/09/02 16:17:32 joern Exp $
 
 Known bugs:
 -----------
@@ -8,7 +8,6 @@ This is my actual TODO list:
 ----------------------------
 - show mail path in advanced search result
 - mark a selection of mails as read
-- address book
 - make browser application configurable
 - check RFC:
   - which charset should be used when replying mail?

@@ -117,6 +117,18 @@ create unique index Folder2View_Filter_idx1 on Folder2View_Filter (folder_id, vi
 create index Folder2View_Filter_idx2 on Folder2View_Filter (view_filter_id);
 create index Folder2View_Filter_idx3 on Folder2View_Filter (folder_id);
 
+create table Address (
+	id		integer		primary key
+					auto_increment
+					not null,
+	email		varchar(255),
+	name		varchar(255),
+	address		varchar(255),
+	phone		varchar(255),
+	fax		varchar(255)
+	
+);
+
 # create configuration parameters
 
 insert into Config (name, description, value, visible, type)
@@ -324,3 +336,18 @@ insert into Config (name, description, value, visible, type)
 values ('mail_bgcolor', 'Mail Background Color', '#d5d5d5', 1, 'html_color');
 
 #</version5>#
+
+#<version6>#
+create table Address (
+	id		integer		primary key
+					auto_increment
+					not null,
+	email		varchar(255),
+	name		varchar(255),
+	address		varchar(255),
+	phone		varchar(255),
+	fax		varchar(255)
+	
+);
+#</version6>#
+

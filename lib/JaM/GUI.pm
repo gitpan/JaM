@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.33 2001/09/02 11:15:25 joern Exp $
+# $Id: GUI.pm,v 1.34 2001/09/02 16:17:32 joern Exp $
 
 package JaM::GUI;
 
@@ -238,6 +238,15 @@ sub create_menubar {
                 { path        => '/Edit/Mail _Account',
 		  accelerator => '<control>M',
                   callback    => sub { $self->account_window } },
+                { path        => '/Edit/Address _Book',
+		  accelerator => '<control>B',
+                  callback    => sub {
+		  	require JaM::GUI::Address;
+		  	my $address = JaM::GUI::Address->new (
+				dbh => $self->dbh
+			);
+			$address->open_window;
+		  } },
 
                 { path        => '/Edit/_Database Configuration',
                   callback    => sub {

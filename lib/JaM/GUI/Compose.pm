@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.23 2001/09/01 11:29:15 joern Exp $
+# $Id: Compose.pm,v 1.24 2001/09/02 16:17:32 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -8,6 +8,7 @@ use strict;
 use JaM::Drop;
 use JaM::GUI::Component;
 use JaM::GUI::MailAsText;
+use JaM::Address;
 use Data::Dumper;
 use MIME::Entity;
 use MIME::Types;
@@ -305,11 +306,26 @@ sub cb_to_entry_key_press {
 		my $text = $widget->get_text;
 		$text =~ s/^\s+//;
 		$text =~ s/\s+$//;
+		
+		if ( $text !~ /\@/ and $text ne '' ) {
+			my $address = JaM::Address->lookup (
+				dbh => $self->dbh,
+				string => $text
+			);
+			if ( $address ) {
+				my $name = $address->name;
+				$text = $address->email;
+				if ( $name ) {
+					$text = "$name <$text>";
+				}
+			}
+		}
+		
 		if ( $text !~ /\@/ and $text ne '' and
 		     $self->config('default_recipient_domain') ) {
 			$text .= '@'.$self->config('default_recipient_domain');
-			$widget->set_text($text);
 		}
+		$widget->set_text($text);
 	}
 	
 	if ( $event->{keyval} == $Gtk::Keysyms{Tab} ) {
@@ -482,14 +498,14 @@ sub cb_send_button {
 	my @to;
 	foreach my $entry ( @{$to_entries} ) {
 		$value = $entry->get_text;
+		$field = $to_headers->[$i++];
+		next if $field eq 'Reply-To';
 		if ( $value ) {
 			push @to, $value;
-			$field = $to_headers->[$i];
 			if ( $field ne 'BCC' ) {
 				push @{$header{$field}}, $self->encode_word($value)
 			}
 		}
-		++$i;
 	}
 	
 	if ( not @to ) {

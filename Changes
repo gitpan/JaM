@@ -1,4 +1,18 @@
-$Id: Changes,v 1.16 2001/09/02 11:15:25 joern Exp $
+$Id: Changes,v 1.17 2001/09/02 16:17:31 joern Exp $
+
+0.9.14 2001/09/02 joern
+	Features:
+	- simple address book (email, name, address, phone and fax).
+	  i'm planning LDAP support for enhanced address lookup, so this
+	  simple version is more than enough.
+	- automatic address book query when pressing enter or tab
+	  in the recipients field of the mail compose window. if this
+	  fails the normal default domain algorithm is used, if the
+	  value doesn't contain an @ sign.
+
+	Bugfixes:
+	- if a Reply-To header was set on outgoing mails, this
+	  address was added to the recipient list of that mail.
 
 0.9.13 2001/09/02 joern
 	Features:

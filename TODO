@@ -1,0 +1,23 @@
+Known bugs:
+-----------
+- internal path field of folders is not updated correctly
+  on folder movement. not critical, because this field
+  is only used in the IO filter dialog for information
+  only.
+
+
+This is my actual TODO list:
+----------------------------
+- edit configuration parameters
+- move mail to folder
+- mark a selection of mails as read
+- input filter: delete operation
+- pop3 error window
+- smtp error window
+- when selecting last selected message in a folder, don't
+  set status on read
+- prevent opening several instance of the same window, if
+  this makes no sense (e.g. account window)
+- configure a default domain name for recipients
+- empty trash
+- address book

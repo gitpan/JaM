@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.30 2001/11/02 14:56:44 joern Exp $
+# $Id: Compose.pm,v 1.32 2001/11/15 22:29:06 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -742,14 +742,16 @@ sub insert_reply_message {
 
 	$mail_as_text->begin;
 	$mail_as_text->write ("$from wrote:\n\n");
-	$mail_as_text->write ("> ");
 	$mail_as_text->quote(1);
+	$mail_as_text->wrap_length($self->config('wrap_line_length_send'));
 
 	if ( $mail->body ) {
+		my $data = $mail->body->as_string;
+		$data =~ s/^\s+//;
 		$mail_comp->put_mail_text (
 			widget => $mail_as_text,
-			data   => $mail->body->as_string,
-			wrap_length => $self->config('wrap_line_length_send'),
+			data   => $data,
+			no_table => 1,
 		);
 	}
 	$mail_comp->print_child_entities (
@@ -757,6 +759,7 @@ sub insert_reply_message {
 		widget => $mail_as_text,
 		entity => $mail,
 		wrap_length => $self->config('wrap_line_length_send'),
+		quote => 1,
 	);
 	
 	my $text = $self->gtk_text;

@@ -1,8 +1,10 @@
-# $Id: MailAsText.pm,v 1.2 2001/08/10 20:12:26 joern Exp $
+# $Id: MailAsText.pm,v 1.3 2001/11/15 22:26:03 joern Exp $
 
 package JaM::GUI::MailAsText;
 
 @ISA = qw ( JaM::GUI::HTMLSurface );
+
+use JaM::Func;
 
 use strict;
 use Carp;
@@ -19,6 +21,8 @@ sub gtk_attachment_popup    { confess "gtk_attachment_popup called"  }
 sub text	    { my $s = shift; $s->{text}
 		      = shift if @_; $s->{text}		}
 sub quote	    { my $s = shift; $s->{quote}
+		      = shift if @_; $s->{quote}	}
+sub wrap_length	    { my $s = shift; $s->{quote}
 		      = shift if @_; $s->{quote}	}
 
 sub new {
@@ -49,6 +53,9 @@ sub write {
 	my $self = shift;
 	my @data = @_;
 
+	my $quote       = $self->quote;
+	my $wrap_length = $self->wrap_length;
+
 	foreach my $line ( @data ) {
 		$line =~ s!</tr>!\n!g;
 		$line =~ s!<br>!\n!g;
@@ -56,7 +63,13 @@ sub write {
 		$line =~ s!<.*?>!!g;
 		$line =~ s!&lt;!<!g;
 		$line =~ s!&nbsp;! !g;
-		$line =~ s!\n!\n> !g if $self->quote;
+		$line =~ s!^!> !mg if $self->quote;
+		if ( $wrap_length ) {
+			JaM::Func->wrap_mail_text (
+				text_sref   => \$line,
+				wrap_length => $wrap_length,
+			);
+		}
 		$self->{text} .= $line;
 	}
 	1;

@@ -1,4 +1,4 @@
-# $Id: Mail.pm,v 1.25 2001/11/06 21:40:56 joern Exp $
+# $Id: Mail.pm,v 1.26 2001/11/15 22:26:03 joern Exp $
 
 package JaM::GUI::Mail;
 
@@ -414,14 +414,14 @@ sub put_mail_text {
 	my  ($widget, $data, $no_table, $wrap_length) =
 	@par{'widget','data','no_table','wrap_length'};
 	
-#	$wrap_length ||= $self->config('wrap_line_length_show');
-	
 	my $quoted_color = $self->config('quoted_color');
 	
-	JaM::Func->wrap_mail_text (
-		text_sref   => \$data,
-		wrap_length => $wrap_length,
-	);
+	if ( $wrap_length ) {
+		JaM::Func->wrap_mail_text (
+			text_sref   => \$data,
+			wrap_length => $wrap_length,
+		);
+	}
 
 	$data =~ s/</&lt;/g;
 	$data =~ s!(\w+://[^\s]+)!<a href="$1">$1</a>!g;

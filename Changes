@@ -1,4 +1,8 @@
-$Id: Changes,v 1.29 2001/11/06 21:34:52 joern Exp $
+$Id: Changes,v 1.30 2001/11/15 22:26:02 joern Exp $
+
+1.0.9 2001/11/15 joern
+	Bugfix:
+	- text was wrapped before quoted when replying to mails
 
 1.0.8 2001/11/06 joern
 	Bugfix:

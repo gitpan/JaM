@@ -1,4 +1,4 @@
-# $Id: IO.pm,v 1.3 2001/08/18 16:37:10 joern Exp $
+# $Id: IO.pm,v 1.4 2001/08/29 19:49:28 joern Exp $
 
 package JaM::Filter::IO;
 
@@ -141,14 +141,17 @@ sub save {
 	# output filter?
 	my $output = $self->type eq 'output' ? 1 : 0;
 	
+	# folder_id defaults to 0
+	my $folder_id = $self->folder_id || 0;
+
 	# and store the serialized object
 	$dbh->do (
 		"update IO_Filter set
 			name = ?, object = ?, last_changed = ?,
-			output = ?
+			output = ?, folder_id = ?
 		 where id = ?", {},
 		$self->name, freeze(\%object), $last_changed,
-		$output, $self->id
+		$output, $folder_id, $self->id
 	);
 
 	return $self;
@@ -279,10 +282,10 @@ sub calculate_code {
 sub reorder {
 	my $self = shift;
 	my %par = @_;
-	my ($dbh, $filter_ids) = @par{'dbh','filter_ids'};
+	my ($filter_ids) = @par{'filter_ids'};
 	
 	my $sortkrit = 1;
-	my $sth = $dbh->prepare (
+	my $sth = $self->dbh->prepare (
 		"update IO_Filter set sortkrit=? where id=?"
 	);
 	
@@ -298,13 +301,13 @@ sub reorder {
 
 sub delete {
 	my $self = shift;
-	my %par = @_;
-	my ($dbh, $filter_id) = @par{'dbh','filter_id'};
 	
-	$dbh->do (
-		"delete from IO_Filter where id=?",{}, $filter_id
+	$self->dbh->do (
+		"delete from IO_Filter where id=?",{}, $self->id
 	);
-	
+
+	JaM::Filter::IO::Apply->clear_cache;
+
 	1;
 }
 
@@ -437,6 +440,13 @@ my %FILTER_OBJECTS;		# Hash of IO::Filter objects
 my %FILTER_CHANGED;		# Hash of change timestamps of IO::Filter objects
 my %FILTER_EACH_CODE;		# code of each IO::Filter object
 my %FILTER_COMBINED_CODE;	# combined code for keys 'input' and 'output'
+
+sub clear_cache {
+	%FILTER_OBJECTS       = ();
+	%FILTER_CHANGED       = ();
+	%FILTER_EACH_CODE     = ();
+	%FILTER_COMBINED_CODE = ();
+}
 
 sub init {
 	my $class = shift;

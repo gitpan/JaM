@@ -1,4 +1,4 @@
-# $Id: Folder.pm,v 1.11 2001/08/18 16:37:10 joern Exp $
+# $Id: Folder.pm,v 1.12 2001/08/29 19:49:28 joern Exp $
 
 package JaM::Folder;
 
@@ -385,6 +385,25 @@ sub delete_content {
 	);
 	
 	if ( $delete_folder_ids ) {
+		# first delete associated filters
+		require JaM::Filter::IO;
+
+		my $filter_ids = $self->dbh->selectcol_arrayref (
+			"select id
+			 from   IO_Filter
+			 where  folder_id in ($delete_folder_ids)"
+		);
+
+		my $filter;
+		foreach my $filter_id ( @{$filter_ids} ) {
+			$filter = JaM::Filter::IO->load (
+				dbh => $self->dbh,
+				filter_id => $filter_id
+			);
+			$filter->delete;
+		}
+	
+		# now the folders themselves
 		$cnt = $self->dbh->do (
 			"delete from Folder where id in ($delete_folder_ids)"
 		);

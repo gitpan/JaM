@@ -1,4 +1,4 @@
-# $Id: Database.pm,v 1.3 2001/08/16 21:23:01 joern Exp $
+# $Id: Database.pm,v 1.4 2001/08/29 19:49:28 joern Exp $
 
 package JaM::Database;
 
@@ -326,6 +326,35 @@ sub set_schema_version {
 	
 	$self->database_version ($version);
 
+	1;
+}
+
+#---------------------------------------------------------------------
+# methods for database updates
+#---------------------------------------------------------------------
+
+sub db_update_version_4 {
+	my $self = shift;
+	my %par = @_;
+	my ($dbh) = @par{'dbh'};
+
+	require JaM::Filter::IO;
+	
+	# save all filters to get the folder_id column
+	
+	my $filters = JaM::Filter::IO->list (
+		dbh => $dbh
+	);
+	
+	my $filter;
+	foreach my $entry ( @{$filters} ) {
+		$filter = JaM::Filter::IO->load (
+			dbh => $dbh,
+			filter_id => $entry->{id}
+		);
+		$filter->save;
+	}
+	
 	1;
 }
 

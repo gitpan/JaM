@@ -1,4 +1,4 @@
-# $Id: Database.pm,v 1.3 2001/08/20 20:37:30 joern Exp $
+# $Id: Database.pm,v 1.4 2001/08/29 19:49:29 joern Exp $
 
 package JaM::GUI::Database;
 
@@ -389,7 +389,7 @@ sub update {
 	my $error;
 	for ( my $i = $db_version + 1; $i <= $init_version; ++$i ) {
 		$status->insert (undef, undef, undef,
-			"Updating from version ".($i-1)." to $i... "
+			"Updating tables from version ".($i-1)." to $i... "
 		);
 		$error = $database->execute_sql (
 			dbh     => $dbh,
@@ -402,11 +402,34 @@ sub update {
 			last;
 		} else {
 			$status->insert (undef, undef, undef, "Ok\n");
-			$database->set_schema_version (
-				version => $i,
-				dbh => $dbh
-			);
 		}
+		
+		my $update_method = "db_update_version_$i";
+
+		if ( $database->can($update_method) ) {
+			$status->insert (undef, undef, undef,
+				"Executing update code for version $i... "
+			);
+
+			eval {
+				$database->$update_method( dbh => $dbh );
+			};
+
+			if ( $@ ) {
+				$error = $@;
+				$status->insert (undef, undef, undef,
+					"Error!\n\n$error\n"
+				);
+				last;
+			} else {
+				$status->insert (undef, undef, undef, "Ok\n");
+			}
+		}
+
+		$database->set_schema_version (
+			version => $i,
+			dbh => $dbh
+		);
 	}
 	
 	if ( not $error ) {

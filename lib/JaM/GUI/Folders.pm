@@ -1,4 +1,4 @@
-# $Id: Folders.pm,v 1.19 2001/08/20 20:37:30 joern Exp $
+# $Id: Folders.pm,v 1.20 2001/08/29 19:49:29 joern Exp $
 
 package JaM::GUI::Folders;
 
@@ -693,8 +693,9 @@ sub move_tree {
 	# rename folder if name clashes with siblings in the new folder
 	while (1) {
 		my $childs_with_same_name = JaM::Folder->query (
-			where => "parent_id = ? and name=?",
-			params => [ $parent_object->id, $moved_object->name ]
+			where => "parent_id = ? and name=? and id != ?",
+			params => [ $parent_object->id, $moved_object->name,
+				    $moved_object->id ]
 		);
 		if  ( keys %{$childs_with_same_name} ) {
 			my $name = $moved_object->name;

@@ -1,4 +1,20 @@
-$Id: Changes,v 1.12 2001/08/28 18:58:22 joern Exp $
+$Id: Changes,v 1.13 2001/08/29 19:49:28 joern Exp $
+
+0.9.10 2001/08/29 joern
+	Features:
+	- enhanced update procedure: execute specific program
+	  code for updating the database is now possible too
+	  (needed for more complex data conversions which can't
+	   be done with simple SQL)
+
+	Bugfixes:
+	- filters were not deleted if corresponding folders
+	  were removed
+	- enter key functionality in mail compose textarea was
+	  broken since 0.9.9 (clearing the selected text block)
+	- a folder was renamed if moved around inside the same
+	  parent folder
+ 
 
 0.9.9 2001/08/28 joern
 	Bugfixes:
@@ -7,8 +23,9 @@ $Id: Changes,v 1.12 2001/08/28 18:58:22 joern Exp $
 	  what's better, I think.
 	- fixed date header, it was not strictly rfc822 conform.
 	  the timezone was noted in abbrevation form, which was
-	  not correct for my TZ (CEST). now the offest format is
-	  used to represent the timezone.
+	  not correct at least for my TZ (CEST, only north american
+	  abbrevations are allowed according to rfc822). now the
+	  offest format is used to represent the timezone.
 	- removed hardcoded keyval's, using Gtk::Keysyms instead.
 
 0.9.8 2001/08/20 joern

@@ -86,6 +86,7 @@ create table IO_Filter (
 					not null,
 	name		varchar(255)	not null,
 	object		mediumblob,
+	folder_id	integer		not null default 0,
 	sortkrit	integer,
 	output		integer,
 	last_changed	integer
@@ -93,6 +94,7 @@ create table IO_Filter (
 
 create index IO_Filter_idx1 on IO_Filter(last_changed);
 create index IO_Filter_idx2 on IO_Filter(name);
+create index IO_Filter_idx3 on IO_Filter(folder_id);
 
 create table View_Filter (
 	id		integer		primary key
@@ -304,3 +306,7 @@ where name='no_reply_addresses';
 update Config set visible=0 where name='folder_tree_left';
 
 #</version3>#
+
+#<version4>#
+alter table IO_Filter add folder_id integer not null default 0;
+#</version4>#

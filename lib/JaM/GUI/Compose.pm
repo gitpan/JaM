@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.19 2001/08/28 18:58:23 joern Exp $
+# $Id: Compose.pm,v 1.20 2001/08/29 19:49:28 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -371,7 +371,7 @@ sub cb_text_key_press {
 	my $keyval = $event->{keyval};
 	$self->debug ("press keyval=$keyval");
 
-	if ( $keyval == $Gtk::Keysyms{Enter} ) {
+	if ( $keyval == $Gtk::Keysyms{Return} ) {
 		# enter key should delete actual selection
 		$widget->delete_selection;
 

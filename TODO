@@ -1,17 +1,8 @@
-$Id: TODO,v 1.21 2001/08/28 18:58:22 joern Exp $
+$Id: TODO,v 1.22 2001/08/29 19:49:28 joern Exp $
 
 Known bugs:
 -----------
-- filters are not deleted if the corresponding folder
-  is deleted
-  => JaM crashes if you select such a filter
-     in the IO filter window 
-  => I have to append a folder_id column to the IO_Filter
-     table. currently this is stored inside the serialized
-     IO_Folder object. so it's uncomfortable to find all
-     filters which refer to a folder :( well, a real native
-     OO database would be fine ;)
-- no word encoding on mail headers for outgoing mail
+- no MIME word encoding on mail headers for outgoing mail
 - the "color parents gray" algorithm has a bug: siblings are
   colored too, sometimes.
 - on folder change (rename, move, delete etc.) recalculate
@@ -20,7 +11,6 @@ Known bugs:
 - if you move all mails away from a folder, its statistic is
   not updated correctly in the folder treeview (press "mark
   all read" as a workaround)
-- folder werden beim verschieben umbenannt
 
 This is my actual TODO list:
 ----------------------------

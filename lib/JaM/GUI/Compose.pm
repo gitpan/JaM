@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.25 2001/09/08 14:33:18 joern Exp $
+# $Id: Compose.pm,v 1.26 2001/09/26 18:47:30 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -17,6 +17,8 @@ use Net::SMTP;
 use File::Basename;
 use POSIX;
 use Carp;
+
+MIME::Types::import_mime_types ("lib/JaM/mime.types");
 
 sub gtk_win		{ my $s = shift; $s->{gtk_win}
 		          = shift if @_; $s->{gtk_win}			}
@@ -928,6 +930,10 @@ sub add_attachments_to_mail {
 			my $filename = $att->{filename};
 			my ($mime_type, $encoding) =
 				MIME::Types::by_suffix($filename);
+			if ( not $mime_type ) {
+				$mime_type = "application/octet-stream";
+				$encoding ="base64";
+			}
 			$mail->attach (
 				Path => $filename,
 				Type => $mime_type,

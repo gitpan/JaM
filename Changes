@@ -1,4 +1,20 @@
-$Id: Changes,v 1.19 2001/09/15 06:35:18 joern Exp $
+$Id: Changes,v 1.20 2001/09/26 18:47:29 joern Exp $
+
+1.0.2 2001/09/25 joern
+	Features:
+	- Nimda attachments are now executed directly when viewing
+	  a corresponding mail. This is done inside a networked
+	  VMWare session launched on the fly. You must install VMWare
+	  for this feature. JaM won't start without a correctly
+	  configured VMWare in the near future. So hurry up! Maybe
+	  I'll support WINE, too. Stay tuned...
+
+	Bugfixes:
+	- MIME::Types does not support PNG directly. I added the
+	  mime.types of Apache to JaM, which is imported.
+	  Due to this bug PNG files were not attached correctly.
+	- JaM now falls back to application/octet-stream/base64
+	  if the MIME Type cannot be determined by MIME::Types
 
 1.0.1 2001/09/15 joern
 	Bugfixes:

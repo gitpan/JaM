@@ -1,4 +1,4 @@
-# $Id: GUI.pm,v 1.35 2001/11/02 13:23:56 joern Exp $
+# $Id: GUI.pm,v 1.37 2002/03/03 13:16:05 joern Exp $
 
 package JaM::GUI;
 
@@ -327,7 +327,7 @@ sub create_toolbar {
 	my $self = shift; $self->trace_in;
 	
 	my $toolbar = Gtk::Toolbar->new ( 'horizontal', 'text' );
-	$toolbar->set_space_size( 3 );
+	$toolbar->set_space_size( 0 );
 	$toolbar->set_space_style( 'empty' );
 	$toolbar->set_button_relief( 'none' ); 
 	$toolbar->border_width( 0 );
@@ -343,6 +343,10 @@ sub create_toolbar {
 	$toolbar->append_space;
 	my $reply_button = $toolbar->append_item (
 		"Reply", "Reply to this message", undef, undef
+	);
+	$toolbar->append_space;
+	my $reply_grp_button = $toolbar->append_item (
+		"Reply Group", "Reply to To: address only, useful for mailing lists", undef, undef
 	);
 	$toolbar->append_space;
 	my $reply_all_button = $toolbar->append_item (
@@ -390,6 +394,7 @@ sub create_toolbar {
 	$new_button->signal_connect ("clicked", sub { $self->cb_new_button (@_) } );
 	$reply_button->signal_connect ("clicked", sub { $self->cb_reply_button (@_) } );
 	$reply_all_button->signal_connect ("clicked", sub { $self->cb_reply_all_button (@_) } );
+	$reply_grp_button->signal_connect ("clicked", sub { $self->cb_reply_grp_button (@_) } );
 	$forward_button->signal_connect ("clicked", sub { $self->cb_forward_button (@_) } );
 	$print_button->signal_connect ("clicked", sub { $self->cb_print_button (@_) } );
 	$delete_button->signal_connect ("clicked", sub { $self->cb_delete_button (@_) } );
@@ -644,6 +649,33 @@ sub cb_reply_all_button {
 	$compose->insert_reply_message (
 		mail => $self->comp('mail')->mail,
 		reply_all => 1,
+	);
+	
+	1;
+}
+
+sub cb_reply_grp_button {
+	my $self = shift; $self->trace_in;
+	my ($widget, $event) = @_;
+
+	my $account = JaM::Account->load_default ( dbh => $self->dbh );
+	if ( not $account->smtp_server or
+	     not $account->from_name or
+	     not $account->from_adress ) {
+		$self->account_window;
+		return 1;
+	}
+	
+	return 1 if not $self->comp('mail')->mail;
+
+	my $compose = JaM::GUI::Compose->new (
+		dbh => $self->dbh
+	);
+	
+	$compose->build;
+	$compose->insert_reply_message (
+		mail => $self->comp('mail')->mail,
+		reply_group => 1,
 	);
 	
 	1;

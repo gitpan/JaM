@@ -1,4 +1,4 @@
-# $Id: IO.pm,v 1.6 2001/09/15 06:35:18 joern Exp $
+# $Id: IO.pm,v 1.7 2002/03/08 10:55:15 joern Exp $
 
 package JaM::Filter::IO;
 
@@ -276,6 +276,8 @@ sub calculate_code {
 		$code .= $condition.";\n";
 	}
 
+	print STDERR $code if $DEBUG;
+
 	return $self->code ($code);
 }
 
@@ -331,7 +333,8 @@ my %operations = (
 	"contains!" 	     =>    "Does'n contain",
 	"begins"    	     =>    "Begins with",
 	"ends"      	     =>    "Ends with",
-	"regex"		     =>	   "Matches This RegEx",
+	"regex_case"	     =>	   "Matches This RegEx, Case Relevant",
+	"regex"	   	     =>	   "Matches This RegEx, Case Ignore",
 );
 
 sub code	{ my $s = shift; $s->{code}
@@ -344,7 +347,7 @@ sub calculate_code {
 	my $operation = $self->operation;
 	my $value     = $self->value;
 
-	$value = quotemeta($value) if $operation ne 'regex';
+	$value = quotemeta($value) if $operation !~ /^regex/;
 
 	my $code;
 	
@@ -357,6 +360,9 @@ sub calculate_code {
 	if ( $operation eq 'contains' or $operation eq 'regex' ) {
 		$code .= "=~ m!$value!i";
 
+	} elsif ( $operation eq 'regex_case' ) {
+		$code .= "=~ m!$value!";
+	
 	} elsif ( $operation eq 'contains!' ) {
 		$code .= "!~ m!$value!i";
 

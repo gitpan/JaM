@@ -1,4 +1,4 @@
-# $Id: Compose.pm,v 1.32 2001/11/15 22:29:06 joern Exp $
+# $Id: Compose.pm,v 1.34 2002/03/03 13:16:05 joern Exp $
 
 package JaM::GUI::Compose;
 
@@ -268,7 +268,7 @@ sub add_recipient_widget {
 	$to_hbox->show;
 	my $to_options_menu = Gtk::Menu->new;
 	my $i = @{$self->to_header_choices};
-	foreach my $header ( "To", "CC", "BCC", "Reply-To" ) {
+	foreach my $header ( "To", "CC", "BCC", "Reply-To", "From" ) {
 		my $item = Gtk::MenuItem->new ($header);
 		$item->show;
 		$item->signal_connect ("select", \&cb_set_header_choice, $self, $i, $header );
@@ -513,14 +513,20 @@ sub cb_send_button {
 	
 	my (%header, $field, $value, $i);
 	my @to;
+	my ($from);
 	foreach my $entry ( @{$to_entries} ) {
 		$value = $entry->get_text;
 		$field = $to_headers->[$i++];
-		next if $field eq 'Reply-To';
+		$value =~ s/^\s+//;
+		$value =~ s/\s+$//;
+		if ( $field eq 'From' ) {
+			$from = $self->encode_word($value);
+			next;
+		}
 		if ( $value ) {
-			push @to, $value;
+			push @to, $self->encode_word($value) if $field ne 'Reply-To';
 			if ( $field ne 'BCC' ) {
-				push @{$header{$field}}, $self->encode_word($value)
+				push @{$header{$field}}, $self->encode_word($value);
 			}
 		}
 	}
@@ -535,8 +541,9 @@ sub cb_send_button {
 	my $account = JaM::Account->load_default ( dbh => $self->dbh )
 		or return;
 
-	my $from = $account->from_name." <".$account->from_adress.">";
-	my $subject = $self->gtk_subject->get_text;
+	$from ||= $self->encode_word ($account->from_name." <".$account->from_adress.">");
+
+	my $subject = $self->encode_word ($self->gtk_subject->get_text);
 	
 	my $gtk_text = $self->gtk_text; 
 	my $len = $gtk_text->get_length;
@@ -559,8 +566,8 @@ sub cb_send_button {
 	
 	my $mail = MIME::Entity->build (
 		%header,
-		From => $self->encode_word($from),
-		Subject => $self->encode_word($subject),
+		From => $from,
+		Subject => $subject,
 		Date => $self->get_rfc822_date,
 		Data => [ $text ],
 		Charset => 'iso-8859-1',
@@ -677,6 +684,7 @@ sub cb_send_button {
 	
 	return 1;
 }
+
 sub encode_word {
 	my $self = shift;
 	my ($word) = @_;
@@ -725,7 +733,8 @@ sub close {
 sub insert_reply_message {
 	my $self = shift;
 	my %par = @_;
-	my ($mail, $reply_all) = @par{'mail','reply_all'};
+	my  ($mail, $reply_all, $reply_group) =
+	@par{'mail','reply_all','reply_group'};
 
 	my $mail_comp = $self->comp('mail');
 	my $mail_as_text = JaM::GUI::MailAsText->new;
@@ -734,6 +743,7 @@ sub insert_reply_message {
 	$from =~ s/<.*?>//;
 	$from =~ s/\s+/ /g;
 	$from =~ s/\s$//;
+
 	if ( $from eq "" ) {
 		$from = $mail->head_get_decoded('from');
 		$from =~ s/<//;
@@ -782,13 +792,41 @@ sub insert_reply_message {
 	$subject = "Re: $subject" if $subject !~ /^(Re|Aw):/i;
 	$self->gtk_subject->set_text ($subject);
 	
+	my $ignore_reply_to = $self->comp('folders')->selected_folder_object
+						    ->ignore_reply_to;
+
 	my @to_header;
-	@to_header = ("from") if not $mail->head_get("reply-to") or $reply_all;
-	push @to_header, "reply-to" if  $mail->head_get("reply-to");
+
 	if ( $reply_all ) {
-		push @to_header, qw ( to cc );
+		# write the to_header "hash" as a list to preserve
+		# order. later we shift pairs from the list.
+		@to_header = (
+			"reply-to" => 'To',
+			from       => 'To',
+			to         => 'CC',
+			cc         => 'CC',
+		);
+
+	} elsif ( $reply_group ) {
+		if ( $mail->head_get("cc") ) {
+			@to_header = ( cc => 'To' );
+		} else {
+			@to_header = ( to => 'To' );
+		}
+		push @to_header, ( "reply-to" => "CC" ) if $mail->head_get("reply-to");
+
+	} elsif ( not $ignore_reply_to
+		  and $mail->head_get("reply-to") ) {
+		@to_header = (
+			"reply-to" => 'To',
+		);
+
+	} else {
+		@to_header = (
+			from => 'To',
+		);
 	}
-	
+
 	my $gtk_to_entries    = $self->gtk_to_entries;
 	my $gtk_to_options    = $self->gtk_to_options;
 	my $to_header_choices = $self->to_header_choices;
@@ -800,20 +838,49 @@ sub insert_reply_message {
 		join ("|", map (quotemeta($_), @{$self->config('no_reply_addresses')})).
 		")";
 
+	# set From: to the content of To:, if this matches the
+	# regex of our no_reply mail addresses. This way we
+	# don't change our address in this thread.
+	if ( $no_reply_regex ne "()" ) {
+		my $account = JaM::Account->load_default ( dbh => $self->dbh )
+			or return;
+		my $from_address = quotemeta($account->from_adress);
+		my @to_address = Mail::Address->parse ( $mail->head_get_decoded ("To") );
+
+		foreach my $to_address ( @to_address ) {
+			my $adress = $to_address->address;
+			if ( $adress !~ /$from_address/ and
+			     $adress =~ /$no_reply_regex/ ) {
+				$self->add_recipient (
+					field   => "From",
+					address => $adress,
+				);
+				last;
+			}
+		}
+	}
+
+	# set all recipient header
 	my %to;
-	foreach my $field ( @to_header ) {
-		@values = $mail->head_get ($field);
+	my ($source_field, $target_field);
+	
+	while ( @to_header ) {
+		$source_field = shift @to_header;
+		$target_field = shift @to_header;
+		@values = $mail->head_get ($source_field);
 		foreach $value ( @values ) {
 			$value = $mail->word_decode ($value);
 			$value =~ s/\s+$//;
 			my @addresses = Mail::Address->parse ($value);
 			foreach my $adr ( @addresses ) {
 				$value = $adr->address;
-				next if $no_reply_regex ne "()" and $value =~ /$no_reply_regex/;
+				next if $reply_all
+					and $no_reply_regex ne "()"
+					and $value =~ /$no_reply_regex/;
 				next if $to{$value};
 				
 				$self->add_recipient (
-					field   => ($field eq 'from' or $field eq 'reply-to') ? 'To' : 'CC',
+					field   => $target_field,
 					address => $value
 				);
 
@@ -834,6 +901,14 @@ sub insert_reply_message {
 	1;
 }
 
+my %POPUP_INDEX = (
+	To => 0,
+	CC => 1,
+	BCC => 2,
+	"Reply-To" => 3,
+	From => 4,
+);
+
 sub add_recipient {
 	my $self = shift;
 	my %par = @_;
@@ -844,9 +919,8 @@ sub add_recipient {
 	my $to_header_choices = $self->to_header_choices;
 	
 	$gtk_to_entries->[@{$gtk_to_entries}-1]->set_text ($address);
-	$gtk_to_options->[@{$gtk_to_entries}-1]->set_history(
-		($field eq 'To') ? 0 : 1
-	);
+	$gtk_to_options->[@{$gtk_to_entries}-1]->set_history($POPUP_INDEX{$field});
+
 	$to_header_choices->[@{$gtk_to_entries}-1] = $field;
 
 	$self->add_recipient_widget;

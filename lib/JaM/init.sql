@@ -20,7 +20,8 @@ create table Folder (
 	sort_direction	varchar(32)	default 'descending',
 	show_max	integer		default 500,
 	show_all	integer		default 0,
-	undeletable	integer		default 0
+	undeletable	integer		default 0,
+	ignore_reply_to	integer		default 0
 );
 
 create index Folder_idx1 on Folder(name);
@@ -359,3 +360,7 @@ values ('wrap_line_length_send', 'Send Mail Wrapping Line Length', '72', 1, 'tex
 insert into Config (name, description, value, visible, type)
 values ('browser_prog', 'Netscape Program', 'netscape', 1, 'file');
 #</version7>#
+
+#<version8>#
+alter table Folder add ignore_reply_to integer default 0;
+#</version8>#

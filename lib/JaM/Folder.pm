@@ -1,4 +1,4 @@
-# $Id: Folder.pm,v 1.13 2001/09/01 10:54:36 joern Exp $
+# $Id: Folder.pm,v 1.14 2002/03/03 13:16:04 joern Exp $
 
 package JaM::Folder;
 
@@ -40,6 +40,8 @@ sub show_all		{ my $s = shift; $s->{show_all}
 		          = shift if @_; $s->{show_all}		}
 sub undeletable		{ my $s = shift; $s->{undeletable}
 		          = shift if @_; $s->{undeletable}	}
+sub ignore_reply_to	{ my $s = shift; $s->{ignore_reply_to}
+		          = shift if @_; $s->{ignore_reply_to}	}
 
 my $FOLDERS;
 my $DBH;
@@ -110,7 +112,7 @@ sub query {
 				path, selected_mail_id, mail_sum, status,
 				mail_read_sum, opened, sort_column,
 				sort_direction, sibling_id, show_max,
-				show_all, undeletable
+				show_all, undeletable, ignore_reply_to
 			 from   Folder
 			 $where"
 		);
@@ -122,14 +124,14 @@ sub query {
 		    $path, $selected_mail_id, $mail_sum, $status,
 		    $mail_read_sum, $opened, $sort_column,
 		    $sort_direction, $sibling_id, $show_max,
-		    $show_all, $undeletable);
+		    $show_all, $undeletable, $ignore_reply_to);
 
 		$sth->bind_columns (\(
 		    $id, $name, $parent_id, $leaf,
 		    $path, $selected_mail_id, $mail_sum, $status,
 		    $mail_read_sum, $opened, $sort_column,
 		    $sort_direction, $sibling_id, $show_max,
-		    $show_all, $undeletable
+		    $show_all, $undeletable, $ignore_reply_to, 
 		));
 
 		while ( $sth->fetch ) {
@@ -151,6 +153,7 @@ sub query {
 				show_max	    => $show_max,
 				show_all	    => $show_all,
 				undeletable	    => $undeletable,
+				ignore_reply_to	    => $ignore_reply_to,
 			};
 			$folders{$id} = bless $self, $type;
 		}
@@ -218,7 +221,7 @@ sub save {
 			path=?, selected_mail_id=?, mail_sum=?,
 			mail_read_sum=?, opened=?, sort_column=?,
 			sort_direction=?, show_max=?, show_all=?,
-			status=?, undeletable=?
+			status=?, undeletable=?, ignore_reply_to = ?
 		 where id=?", {},
 		 $self->{sibling_id}, $self->{name},
 		 $self->{parent_id}, $self->{leaf}, $self->{path},
@@ -226,7 +229,7 @@ sub save {
 		 $self->{mail_read_sum}, $self->{opened},
 		 $self->{sort_column}, $self->{sort_direction},
 		 $self->{show_max}, $self->{show_all}, $self->{status},
-		 $self->{undeletable},
+		 $self->{undeletable}, $self->{ignore_reply_to},
 		 $self->{id}
 	);
 

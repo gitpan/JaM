@@ -1,4 +1,28 @@
-$Id: Changes,v 1.30 2001/11/15 22:26:02 joern Exp $
+$Id: Changes,v 1.33 2002/03/08 10:55:34 joern Exp $
+
+1.0.10 2002/03/08 joern
+	Bugfixes:
+	- setting Reply-To didn't work
+	
+	Features:
+	- added "Reply Group" button which replies to the address
+	  of the "To:" header field. Useful for replying into
+	  mailing lists.
+	- you can simply specify another From address per mail
+	  by selecting the appropriate entry of the recipient
+	  popup in the compose mail dialog.
+	- if you have many email aliases forwarded to one account
+	  this one is for you: when replying JaM checks the To:
+	  field against the addresses listed in the Non-Reply
+	  user configuration field (it assumes that these are
+	  your aliases). The first address which matches and
+	  is not your normal From: address configured in the
+	  mail account window, will be set as From by default.
+	  This way you don't change your address inside one
+	  thread, if a mail was posted to one of your alias
+	  addresses.
+	- mail filter: regex filter also available as a
+	  case relevant version.
 
 1.0.9 2001/11/15 joern
 	Bugfix:

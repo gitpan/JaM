@@ -1,4 +1,4 @@
-# $Id: Folders.pm,v 1.21 2001/09/02 11:15:25 joern Exp $
+# $Id: Folders.pm,v 1.22 2002/03/03 13:16:05 joern Exp $
 
 package JaM::GUI::Folders;
 
@@ -127,6 +127,13 @@ sub gtk_template_sep	{ my $s = shift; $s->{gtk_template_sep}
 sub gtk_template_item	{ my $s = shift; $s->{gtk_template_item}
 		          = shift if @_; $s->{gtk_template_item}		}
 
+sub gtk_ignore_reply_to	{ my $s = shift; $s->{gtk_ignore_reply_to}
+		          = shift if @_; $s->{gtk_ignore_reply_to}		}
+
+sub gtk_dont_ignore_reply_to
+			{ my $s = shift; $s->{gtk_dont_ignore_reply_to}
+		          = shift if @_; $s->{gtk_dont_ignore_reply_to}		}
+
 # helper method for setting up pixmaps
 sub initialize_pixmap {
 	my $self = shift; $self->trace_in;
@@ -214,9 +221,10 @@ sub build {
 	);
 
 	$folders->show;
-	
-	# now build popup Menu
+
 	$root_tree->signal_connect('button_press_event', sub { $self->cb_click_clist(@_) } );
+
+	# now build popup Menu
 	my $popup = $root_tree->{popup} = Gtk::Menu->new;
 	my $item;
 
@@ -250,6 +258,24 @@ sub build {
 	$popup->append($item);
 	$item->signal_connect ("activate", sub { $self->cb_add_input_filter ( @_ ) } );
 	$item->show;
+
+	$item = Gtk::MenuItem->new;
+	$popup->append($item);
+	$item->show;
+
+	my $ignore_reply_to_item = Gtk::RadioMenuItem->new_with_label ("Ignore Reply-To Header");
+	$popup->append($ignore_reply_to_item);
+	$ignore_reply_to_item->signal_connect ("activate", sub { $self->cb_ignore_reply_to ( @_ ) } );
+	$ignore_reply_to_item->show;
+
+	$self->gtk_ignore_reply_to  ($ignore_reply_to_item);
+
+	$item = Gtk::RadioMenuItem->new_with_label ("Don't ignore Reply-To Header", $ignore_reply_to_item);
+	$popup->append($item);
+	$item->signal_connect ("activate", sub { $self->cb_dont_ignore_reply_to ( @_ ) } );
+	$item->show;
+
+	$self->gtk_dont_ignore_reply_to  ($item);
 
 	$item = Gtk::MenuItem->new;
 	$popup->append($item);
@@ -368,6 +394,11 @@ sub cb_click_clist {
 		} else {
 			$self->gtk_template_sep->hide;
 			$self->gtk_template_item->hide;
+		}
+		if ( $self->popup_folder_object->ignore_reply_to ) {
+			$self->gtk_ignore_reply_to->set_active(1);
+		} else {
+			$self->gtk_dont_ignore_reply_to->set_active(1);
 		}
 		$widget->{'popup'}->popup(undef,undef,$event->{button},1);
 	}
@@ -995,5 +1026,26 @@ sub empty_trash_folder {
 	1;
 }
 
+sub cb_ignore_reply_to {
+	my $self = shift;
+	
+	my $folder_object = $self->popup_folder_object;
+	
+	$folder_object->ignore_reply_to (1);
+	$folder_object->save;
+	
+	1;
+}
+
+sub cb_dont_ignore_reply_to {
+	my $self = shift;
+	
+	my $folder_object = $self->popup_folder_object;
+	
+	$folder_object->ignore_reply_to (0);
+	$folder_object->save;
+	
+	1;
+}
 
 1;
